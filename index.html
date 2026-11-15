@@ -187,7 +187,7 @@ input[type=checkbox]{width:24px;height:24px;accent-color:var(--c)}
 
   <section id="studio" hidden>
     <h1>Nahrávání</h1>
-    <p class="small">Ťukni na Nahrát, řekni slabiku nebo slovo a ťukni znovu. Mluv pomalu a zřetelně, jako když čteš ze slabikáře. Hotové mají fajfku, a hra pak pouští tvůj hlas.</p>
+    <p class="small">Ťukni na Nahrát a řekni slabiku nebo slovo. Nahrávka skončí sama, ořízne se na hlas a srovná hlasitost. Drž zařízení 10–15 cm od pusy a mluv zřetelně, jako když čteš ze slabikáře. Hotové mají fajfku, a hra pak pouští tvůj hlas.</p>
     <p class="note" id="stWarn" hidden>Tady mikrofon nejde. Funguje na vlastní webové stránce hry.</p>
     <div class="seg" id="stTabs"></div>
     <p class="small" id="stInfo"></p>
@@ -285,7 +285,7 @@ async function sayList(arr,on){for(let i=0;i<arr.length;i++){on&&on(i);await say
 
 /* views */
 const VIEWS=['home','play','end','parent','studio'];
-function show(v){if(v!=='play')LC=false;VIEWS.forEach(x=>$(x).hidden=x!==v);$('dots').hidden=v!=='play';$('brand').hidden=v==='play';$('homeBtn').hidden=v==='home';window.scrollTo(0,0);if(v==='home')renderHome();if(v==='parent')renderParent();if(v==='studio')renderStudio()}
+function show(v){if(v!=='play')LC=false;if(v!=='studio'&&v!=='play')closeMic();VIEWS.forEach(x=>$(x).hidden=x!==v);$('dots').hidden=v!=='play';$('brand').hidden=v==='play';$('homeBtn').hidden=v==='home';window.scrollTo(0,0);if(v==='home')renderHome();if(v==='parent')renderParent();if(v==='studio')renderStudio()}
 const GM={
   mix:{n:'Mix'},
   first:{c:'#ffd9c9',n:'Co slyšíš?',d:'První a poslední hláska ve slově',ex:'<span class="c">M</span>…<span class="v">A</span>'},
@@ -451,20 +451,51 @@ $('showtxt').onchange=e=>{S.text=e.target.checked;save()};
 $('vsel').onchange=e=>{S.voice=e.target.value;save();loadV();tts('Ahoj, jdeme číst. Kolo.')};
 $('own').onchange=e=>{S.own=e.target.checked;save();renderVoice()};
 $('recClear').onclick=async()=>{await clearRec();renderRec()};
-let rec=null;
 const recMsg=(h,ms)=>{const m=$('recMsg');m.hidden=false;m.innerHTML=h;if(ms)setTimeout(()=>m.hidden=true,ms)};
 const saveRec=async b=>{await putRec(low(G.text),b);recMsg(`Uloženo: „${low(G.text)}“`,2500);say(G.text)};
+/* recording: mic stays open, keeps a 0.6 s pre-roll, finds the voice, trims, evens out volume, saves WAV */
+let cap=null,capT=null;
+async function openMic(){
+  if(cap){clearTimeout(capT);if(cap.ac.state==='suspended')await cap.ac.resume();return cap}
+  const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
+  const ac=new (window.AudioContext||window.webkitAudioContext)();await ac.resume();
+  const src=ac.createMediaStreamSource(st),hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=90;
+  const pr=ac.createScriptProcessor(2048,1,1),mute=ac.createGain();mute.gain.value=0;
+  src.connect(hp);hp.connect(pr);pr.connect(mute);mute.connect(ac.destination);
+  const c={st,ac,pr,sr:ac.sampleRate,ring:[],job:null};
+  pr.onaudioprocess=e=>{const d=new Float32Array(e.inputBuffer.getChannelData(0));let q=0;for(let i=0;i<d.length;i++)q+=d[i]*d[i];const r=Math.sqrt(q/d.length);
+    if(c.job)c.job.feed(d,r);else{c.ring.push({d,r});if(c.ring.length>16)c.ring.shift()}};
+  cap=c;await wait(450);return c}
+function closeMic(){if(!cap)return;try{cap.pr.onaudioprocess=null;cap.st.getTracks().forEach(t=>t.stop());cap.ac.close()}catch(e){}cap=null}
+const idleMic=()=>{clearTimeout(capT);capT=setTimeout(closeMic,25000)};
+function toWav(f,sr){let k=1;while(sr/k>26000&&k<4)k++;const n=Math.floor(f.length/k),o=new DataView(new ArrayBuffer(44+n*2)),w=(i,t)=>[...t].forEach((c,j)=>o.setUint8(i+j,c.charCodeAt(0))),r=Math.round(sr/k);
+  w(0,'RIFF');o.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');o.setUint32(16,16,true);o.setUint16(20,1,true);o.setUint16(22,1,true);o.setUint32(24,r,true);o.setUint32(28,r*2,true);o.setUint16(32,2,true);o.setUint16(34,16,true);w(36,'data');o.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){let v=0;for(let j=0;j<k;j++)v+=f[i*k+j];v/=k;o.setInt16(44+i*2,Math.max(-1,Math.min(1,v))*32767,true)}
+  return new Blob([o],{type:'audio/wav'})}
+function processTake(chs,rs,sr,thr){
+  let a=-1,z=-1;rs.forEach((r,i)=>{if(r>thr){if(a<0)a=i;z=i}});if(a<0)return null;
+  a=Math.max(0,a-5);z=Math.min(chs.length-1,z+6);
+  const len=chs.slice(a,z+1).reduce((n,c)=>n+c.length,0),f=new Float32Array(len);let p=0;chs.slice(a,z+1).forEach(c=>{f.set(c,p);p+=c.length});
+  let pk=0;for(let i=0;i<f.length;i++)pk=Math.max(pk,Math.abs(f[i]));const g=Math.min(8,.9/(pk||1));const fd=Math.floor(sr*.012);
+  for(let i=0;i<f.length;i++){let m=g;if(i<fd)m*=i/fd;if(f.length-i<fd)m*=(f.length-i)/fd;f[i]*=m}
+  return toWav(f,sr)}
 async function recordTo(text,btn,onDone){
-  if(rec){rec.stop();return true}
-  try{const st=await navigator.mediaDevices.getUserMedia({audio:true});const mr=new MediaRecorder(st);const ch=[];
-    mr.ondataavailable=e=>ch.push(e.data);
-    mr.onstop=async()=>{st.getTracks().forEach(t=>t.stop());rec=null;btn.classList.remove('on');const b=new Blob(ch,{type:mr.mimeType||'audio/webm'});await putRec(low(text),b);onDone&&onDone(b)};
-    rec=mr;mr.start();btn.classList.add('on');setTimeout(()=>{if(rec===mr)mr.stop()},4500);return true}
-  catch(e){rec=null;return false}}
-$('recBtn').onclick=async()=>{if(!G||!G.text)return;const was=!!rec;
-  const ok=await recordTo(G.text,$('recBtn'),b=>{recMsg(`Uloženo: „${low(G.text)}“`,2500);playBlob(b)});
+  if(cap&&cap.job){cap.job.stop();return true}
+  let c;try{c=await openMic()}catch(e){return false}
+  const pre=c.ring.slice();c.ring=[];const rs=pre.map(x=>x.r),chs=pre.map(x=>x.d);
+  const sorted=[...rs].sort((x,y)=>x-y);const floor=sorted.length?sorted[Math.floor(sorted.length*.25)]:.005;const thr=Math.max(.018,floor*4);
+  let quiet=0,hot=0,began=false,fin=false;btn.classList.add('on');
+  const job={feed(d,r){chs.push(d);rs.push(r);
+      if(r>thr){hot++;quiet=0;if(hot>=2)began=true}else{hot=0;if(began)quiet++}
+      const t=(chs.length-pre.length)*d.length/c.sr;
+      if(!fin&&((began&&quiet>=16)||t>7||(!began&&t>5)))job.stop()},
+    stop:async()=>{if(fin)return;fin=true;c.job=null;btn.classList.remove('on');idleMic();
+      const b=processTake(chs,rs,c.sr,thr);if(b)await putRec(low(text),b);onDone&&onDone(b)}};
+  c.job=job;return true}
+$('recBtn').onclick=async()=>{if(!G||!G.text)return;const was=!!(cap&&cap.job);
+  const ok=await recordTo(G.text,$('recBtn'),b=>{if(b){recMsg(`Uloženo: „${low(G.text)}“`,2500);playBlob(b)}else recMsg('Nic jsem neslyšel. Zkus to blíž k mikrofonu.',3000)});
   if(!ok){recMsg(`Tady mikrofon nejde. Nahraj „${low(G.text)}“ v Diktafonu a <button class="btn" id="recPick">vyber soubor</button>`);$('recPick').onclick=()=>$('recIn').click()}
-  else if(!was)recMsg(`Mluv teď: „${low(G.text)}“. Ťukni znovu pro konec.`)};
+  else if(!was)recMsg(`Mluv: „${low(G.text)}“. Nahrávka skončí sama.`)};
 let stTab='h';
 const allKeys=()=>idb('readonly',s=>s.getAllKeys());
 async function renderStudio(){
@@ -473,7 +504,7 @@ async function renderStudio(){
   document.querySelectorAll('#stTabs .btn').forEach(b=>b.onclick=()=>{stTab=b.dataset.t;renderStudio()});
   const done=items.filter(x=>ks.has(low(x.k))).length;$('stInfo').textContent=`Hotovo ${done} z ${items.length}.`;
   $('stList').innerHTML=items.map(x=>`<li><b>${x.h}</b><button class="btn sr" data-x="${x.k}">Nahrát</button><button class="btn sp" data-x="${x.k}" aria-label="Přehrát">▶</button><span>${ks.has(low(x.k))?'✓':''}</span></li>`).join('');
-  document.querySelectorAll('.sr').forEach(b=>b.onclick=async()=>{const was=!!rec;b.textContent=was?'Nahrát':'Stop';const ok=await recordTo(b.dataset.x,b,bl=>{playBlob(bl);renderStudio()});if(!ok){b.textContent='Nahrát';$('stWarn').hidden=false}});
+  document.querySelectorAll('.sr').forEach(b=>b.onclick=async()=>{const was=!!(cap&&cap.job);const ok=await recordTo(b.dataset.x,b,bl=>{if(bl)playBlob(bl);else{b.textContent='Nic jsem neslyšel';setTimeout(()=>renderStudio(),1400);return}renderStudio()});if(!ok){b.textContent='Nahrát';$('stWarn').hidden=false}else if(!was)b.textContent='Poslouchám…'});
   document.querySelectorAll('.sp').forEach(b=>b.onclick=async()=>{const r=await getRec(low(b.dataset.x));r?playBlob(r):b.dataset.x.startsWith('h:')?0:tts(b.dataset.x)});
 }
 $('studioBtn').onclick=()=>{S.own=true;save();show('studio')};
