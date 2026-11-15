@@ -105,10 +105,56 @@ input[type=range]{width:min(260px,100%);accent-color:var(--c);height:44px}
 input[type=checkbox]{width:24px;height:24px;accent-color:var(--c)}
 .pgrid{display:grid;gap:16px}
 @media(min-width:700px){.pgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.pgrid .wide{grid-column:1/-1}}
+.g{background:light-dark(var(--gc),color-mix(in srgb,var(--gc) 22%,#2a2f5a))}
+.tile{background:linear-gradient(light-dark(#ffffff,#373e72),light-dark(#f6f0de,#2a2f5a));border:2px solid light-dark(#f0e2b8,#1e2244)}
+.scene{position:relative;height:160px;border-radius:24px;overflow:hidden;background:linear-gradient(light-dark(#86cffc,#16224d),light-dark(#e3f5ff,#34407c));box-shadow:0 6px 0 var(--line)}
+.scene .sun{position:absolute;right:22px;top:16px;width:46px;height:46px;border-radius:50%;background:light-dark(#ffe066,#f4f1d0);box-shadow:0 0 0 10px light-dark(#fff2a8,#3c4a8a)}
+.scene .hills{position:absolute;left:0;bottom:0;width:100%;height:80px}
+.scene .rail{position:absolute;left:0;right:0;bottom:20px;height:7px;background:repeating-linear-gradient(90deg,#7a5230 0 10px,#5c3c22 10px 14px);box-shadow:0 -3px 0 #9aa3ad}
+.scene .count{position:absolute;left:14px;top:12px;font-weight:700;font-size:17px;color:#1b2a4a;background:rgba(255,255,255,.85);border-radius:12px;padding:4px 12px;max-width:62%}
+.train{position:absolute;bottom:29px;right:10px;left:10px;display:flex;align-items:flex-end;justify-content:flex-end;gap:5px;overflow:hidden}
+.wag{flex:none;width:60px;height:42px;border-radius:9px 9px 5px 5px;background:var(--wc);position:relative;box-shadow:inset 0 -7px 0 rgba(0,0,0,.18),inset 0 3px 0 rgba(255,255,255,.35)}
+.wag::before,.wag::after{content:"";position:absolute;bottom:-10px;width:15px;height:15px;border-radius:50%;background:#2d2d3a;border:3px solid #a9b0bb}
+.wag::before{left:6px}.wag::after{right:6px}
+.wag span{position:absolute;left:50%;top:-20px;transform:translateX(-50%);font-size:30px;line-height:1}
+.loco{flex:none;width:118px;height:86px;margin-bottom:-10px}
+.wag.new{animation:roll 1.4s cubic-bezier(.2,.8,.3,1)}
+@keyframes roll{from{transform:translateX(-160px)}}
+.owl{width:60px;height:66px;flex:none}
+.owl.hop{animation:hop .6s}
+.owl.huh{animation:huh .5s}
+@keyframes hop{40%{transform:translateY(-16px) rotate(-6deg)}}
+@keyframes huh{25%{transform:rotate(-10deg)}75%{transform:rotate(10deg)}}
+.spark{position:fixed;pointer-events:none;color:#ffb800;font-size:26px;z-index:9;animation:spark .9s ease-out forwards}
+@keyframes spark{to{transform:translate(var(--dx),var(--dy)) scale(.4);opacity:0}}
+.tile,.slot{display:flex!important;align-items:center;justify-content:center}
+#stList li{display:grid;grid-template-columns:minmax(0,1fr) auto auto 24px;align-items:center;gap:8px}
+.btn.pri{color:light-dark(#fff,#0d1530)}
+.seg .btn.on{color:light-dark(#fff,#0d1530)}
+.pex{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;width:min(100%,520px)}
+.pc{aspect-ratio:3/4;border:0;border-radius:16px;font-weight:700;font-size:clamp(34px,10vw,56px);cursor:pointer;background:radial-gradient(circle,rgba(255,255,255,.28) 0 22%,transparent 23%) 0 0/34px 34px,var(--c);box-shadow:0 5px 0 color-mix(in srgb,var(--c) 55%,#000);display:grid;place-items:center;transition:transform .25s}
+.pc .f{display:none}
+.pc::after{content:"?";color:#fff;font-size:.8em}
+.pc.up,.pc.ok{background:var(--card);box-shadow:0 5px 0 var(--line);transform:rotateY(0)}
+.pc.up::after,.pc.ok::after{content:none}
+.pc.up .f,.pc.ok .f{display:block}
+.pc.ok{outline:4px solid var(--ok);outline-offset:-4px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="owlS" viewBox="0 0 100 110">
+<path d="M22 30 L30 8 L42 24 Z M78 30 L70 8 L58 24 Z" fill="#7a4f2f"/>
+<ellipse cx="50" cy="62" rx="38" ry="44" fill="#9a6a42"/>
+<ellipse cx="17" cy="70" rx="10" ry="24" fill="#7a4f2f"/><ellipse cx="83" cy="70" rx="10" ry="24" fill="#7a4f2f"/>
+<ellipse cx="50" cy="76" rx="24" ry="27" fill="#f3dcb5"/>
+<path d="M38 70q4 4 8 0M54 70q4 4 8 0M44 82q4 4 8 0M50 92q-4 4-8 0" stroke="#d9b98a" stroke-width="2.5" fill="none"/>
+<circle cx="34" cy="46" r="15" fill="#fff"/><circle cx="66" cy="46" r="15" fill="#fff"/>
+<circle cx="36" cy="48" r="7.5" fill="#22223a"/><circle cx="64" cy="48" r="7.5" fill="#22223a"/>
+<circle cx="38.5" cy="45" r="2.6" fill="#fff"/><circle cx="66.5" cy="45" r="2.6" fill="#fff"/>
+<path d="M44 58 L56 58 L50 69 Z" fill="#f4a300"/>
+<path d="M36 105 l4-6 4 6M56 105 l4-6 4 6" stroke="#f4a300" stroke-width="4" fill="none" stroke-linecap="round"/>
+</symbol></svg>
 <div class="wrap">
   <div class="bar">
     <button id="homeBtn" class="btn sq" aria-label="Domů" hidden>×</button>
@@ -117,6 +163,7 @@ input[type=checkbox]{width:24px;height:24px;accent-color:var(--c)}
   </div>
 
   <section id="home" class="stack">
+    <div class="scene" id="scene"></div>
     <div class="card last" id="lastLine"></div>
     <div class="note" id="vbanner" hidden>Na tomhle zařízení se nenašel český hlas. Zkus Chrome nebo Safari s nainstalovanou češtinou. Jinak hra ukáže, co máš nahlas říct, a čteš ty.</div>
     <button class="btn pri mix" id="mixBtn">Hrát mix</button>
@@ -126,7 +173,7 @@ input[type=checkbox]{width:24px;height:24px;accent-color:var(--c)}
   </section>
 
   <section id="play" hidden>
-    <div class="prompt"><h2 id="ptitle"></h2>
+    <div class="prompt"><svg class="owl" id="owl" viewBox="0 0 100 110" aria-hidden="true"><use href="#owlS" width="100" height="110"/></svg><h2 id="ptitle"></h2>
       <button id="sayBtn" class="say" aria-label="Přehrát znovu"><svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true"><path d="M3.5 9h4l5-4v14l-5-4h-4z" fill="#fff"/><path d="M16 8.5a5 5 0 0 1 0 7M18.6 6a8.5 8.5 0 0 1 0 12" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></button>
     <button id="recBtn" class="say rec" aria-label="Nahrát vlastní hlas" hidden><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="#fff"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></button>
     </div>
@@ -166,6 +213,7 @@ input[type=checkbox]{width:24px;height:24px;accent-color:var(--c)}
         <p class="small">Nejlíp zní, když slova a slabiky namluvíš ty. Zapni to a při hře se vedle reproduktoru objeví mikrofon: ťukneš, nahraješ, co je potřeba, a příště hra pustí tvou nahrávku. Nahrávky zůstávají jen v tomhle prohlížeči.</p>
         <div class="field"><input type="checkbox" id="own"><label for="own">Používat moje nahrávky</label></div>
         <p class="small" id="recCount"></p><div class="row" style="justify-content:flex-start"><button class="btn pri" id="studioBtn">Nahrát všechno najednou</button><button class="btn" id="recClear">Smazat nahrávky</button></div></div>
+      <div class="card"><h3>Písmo</h3><div class="seg" id="caseSeg"></div><p class="small">Obojí střídá velká a malá písmena úkol po úkolu.</p></div>
       <div class="card"><h3>Délka kola</h3><div class="seg" id="seg"></div>
         <p class="small">Pro pětileté stačí 6 až 8 úkolů, 10 až 15 minut denně.</p></div>
       <div class="card"><h3>Co ještě nejde</h3><ul class="list" id="weak"></ul></div>
@@ -190,12 +238,13 @@ const low=s=>s.toLocaleLowerCase('cs');
 const rnd=n=>Math.floor(Math.random()*n);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
-const ctok=(t,x)=>`<span class="${isV(t)?'v':'c'}${x?' '+x:''}">${t}</span>`;
+let LC=false;
+const ctok=(t,x)=>`<span class="${isV(t)?'v':'c'}${x?' '+x:''}">${LC?low(t):t}</span>`;
 const colorize=s=>tokens(s).map(t=>ctok(t)).join('');
 const WORDS=RAW.split('|').map(x=>{const p=x.trim().split(' ');const syl=p[0].split('-');const word=syl.join('');return{syl,word,pic:p[1],t:tokens(word).map(base)}});
 
 const KEY='slabikar-v1';
-const DEF={known:ORDER.length,rate:0.9,voice:'',own:false,round:8,text:false,stats:{},hist:[],stick:[]};
+const DEF={case:'mix',known:ORDER.length,rate:0.9,voice:'',own:false,round:8,text:false,stats:{},hist:[],stick:[]};
 let S;
 try{S=Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){S=Object.assign({},DEF)}
 const hd=window.claude&&window.claude.hot&&window.claude.hot.data;
@@ -236,21 +285,27 @@ async function sayList(arr,on){for(let i=0;i<arr.length;i++){on&&on(i);await say
 
 /* views */
 const VIEWS=['home','play','end','parent','studio'];
-function show(v){VIEWS.forEach(x=>$(x).hidden=x!==v);$('dots').hidden=v!=='play';$('brand').hidden=v==='play';$('homeBtn').hidden=v==='home';window.scrollTo(0,0);if(v==='home')renderHome();if(v==='parent')renderParent();if(v==='studio')renderStudio()}
+function show(v){if(v!=='play')LC=false;VIEWS.forEach(x=>$(x).hidden=x!==v);$('dots').hidden=v!=='play';$('brand').hidden=v==='play';$('homeBtn').hidden=v==='home';window.scrollTo(0,0);if(v==='home')renderHome();if(v==='parent')renderParent();if(v==='studio')renderStudio()}
 const GM={
   mix:{n:'Mix'},
-  first:{n:'Co slyšíš?',d:'První a poslední hláska ve slově',ex:'<span class="c">M</span>…<span class="v">A</span>'},
-  clap:{n:'Vytleskej',d:'Kolik má slovo slabik',ex:'👏 👏'},
-  find:{n:'Najdi slabiku',d:'Slyšíš slabiku, najdi ji',ex:colorize('LA')+' '+colorize('LE')},
-  build:{n:'Slož slabiku',d:'Souhláska a samohláska',ex:colorize('M')+' + '+colorize('A')},
-  word:{n:'Slož slovo',d:'Ze slabik podle obrázku',ex:colorize('KO')+' '+colorize('LO')},
-  read:{n:'Přečti',d:'Přečti a najdi obrázek',ex:colorize('PES')}
+  first:{c:'#ffd9c9',n:'Co slyšíš?',d:'První a poslední hláska ve slově',ex:'<span class="c">M</span>…<span class="v">A</span>'},
+  clap:{c:'#e3dcff',n:'Vytleskej',d:'Kolik má slovo slabik',ex:'👏 👏'},
+  find:{c:'#cfeaff',n:'Najdi slabiku',d:'Slyšíš slabiku, najdi ji',ex:colorize('LA')+' '+colorize('LE')},
+  build:{c:'#d3f5df',n:'Slož slabiku',d:'Souhláska a samohláska',ex:colorize('M')+' + '+colorize('A')},
+  word:{c:'#ffe6a8',n:'Slož slovo',d:'Ze slabik podle obrázku',ex:colorize('KO')+' '+colorize('LO')},
+  read:{c:'#ffd6ea',n:'Přečti',d:'Přečti a najdi obrázek',ex:colorize('PES')},
+  pairs:{c:'#cdeee8',n:'Pexeso',d:'Najdi velké a malé písmeno',ex:'<span class="c">M</span> <span class="c">m</span>'}
 };
+const WC=['#ff6b5b','#3d8bff','#2fbf71','#ffb020','#ff7ab6','#14b8a6','#8b6cff'];
+const plural=n=>n===1?'vagónek':n<5?'vagónky':'vagónků';
+function renderScene(el,isNew){const n=S.stick.length;const w=S.stick.slice(-9);
+  el.innerHTML=`<div class="sun"></div><svg class="hills" viewBox="0 0 400 80" preserveAspectRatio="none" aria-hidden="true"><path d="M0 46 Q70 6 150 36 T300 26 T400 34 V80 H0Z" style="fill:light-dark(#9fdc8f,#2c5a46)"/><path d="M0 60 Q90 30 190 54 T400 48 V80 H0Z" style="fill:light-dark(#5fbf5a,#1f4636)"/></svg><div class="rail"></div><div class="count">${n?`Vláček má ${n} ${plural(n)}`:'Dohraj kolo a přibude vagónek'}</div><div class="train">${w.map((s,i)=>`<div class="wag${isNew&&i===w.length-1?' new':''}" style="--wc:${WC[(n-w.length+i)%WC.length]}"><span>${s}</span></div>`).join('')}${LOCO}</div>`}
+const LOCO=`<svg class="loco" viewBox="0 0 118 86" aria-hidden="true"><rect x="18" y="4" width="10" height="20" rx="2" fill="#2d2d3a"/><rect x="14" y="2" width="18" height="6" rx="2" fill="#2d2d3a"/><rect x="4" y="24" width="66" height="40" rx="10" fill="#e8453c"/><rect x="4" y="52" width="66" height="12" fill="#b8312a"/><rect x="62" y="8" width="48" height="56" rx="8" fill="#2f6fe0"/><rect x="62" y="52" width="48" height="12" fill="#2154b0"/><rect x="70" y="16" width="32" height="28" rx="6" fill="#d7f0ff"/><use href="#owlS" x="72" y="14" width="28" height="31"/><rect x="0" y="60" width="114" height="6" rx="3" fill="#2d2d3a"/><circle cx="22" cy="72" r="12" fill="#2d2d3a" stroke="#a9b0bb" stroke-width="4"/><circle cx="52" cy="74" r="9" fill="#2d2d3a" stroke="#a9b0bb" stroke-width="3"/><circle cx="90" cy="72" r="12" fill="#2d2d3a" stroke="#a9b0bb" stroke-width="4"/></svg>`;
 const fmt=d=>new Date(d).toLocaleDateString('cs-CZ',{weekday:'long',day:'numeric',month:'numeric'});
-function renderHome(){
+function renderHome(){renderScene($('scene'),false);
   const h=S.hist[0];const wk=weakList(4).map(e=>e[0].slice(2));
   $('lastLine').innerHTML=h?`<b>Kde jsme skončili:</b> ${fmt(h.d)}, ${GM[h.m].n}, ${h.s} z ${h.n} hvězd.${wk.length?` Ještě procvičit: <b>${wk.map(colorize).join(', ')}</b>.`:''}`:'<b>Začínáme.</b> Zkus Mix, pak se ukáže, co jde a co ne.';
-  $('games').innerHTML=Object.keys(GM).filter(k=>k!=='mix').map(k=>`<button class="btn g" data-m="${k}"><span class="ex">${GM[k].ex}</span><b>${GM[k].n}</b><small>${GM[k].d}</small></button>`).join('');
+  $('games').innerHTML=Object.keys(GM).filter(k=>k!=='mix').map(k=>`<button class="btn g" data-m="${k}" style="--gc:${GM[k].c}"><span class="ex">${GM[k].ex}</span><b>${GM[k].n}</b><small>${GM[k].d}</small></button>`).join('');
   $('album').innerHTML=S.stick.length?S.stick.slice(-30).map(s=>`<span>${s}</span>`).join(''):'<span class="empty">Za každé kolo jedna samolepka.</span>';
   renderVoice();
 }
@@ -261,7 +316,7 @@ function start(mode){if(hasTTS){try{const u=new SpeechSynthesisUtterance(' ');u.
 function renderDots(){$('dots').innerHTML=Array.from({length:G.n},(_,i)=>{const r=G.res[i];return `<span class="dot${i===G.i?' now':''}${r===true?' st':r===false?' dn':''}">${r===true?'★':r===false?'✓':''}</span>`}).join('')}
 function next(){
   renderDots();if(G.i>=G.n)return end();
-  const ks=['first','clap','find','build','word','read'];
+  const ks=['first','clap','find','build','word','read','pairs'];
   let t=G.mode;if(t==='mix'){do{t=ks[rnd(ks.length)]}while(t===G.prev&&Math.random()<.8)}
   G.prev=t;
   const nw=words();
@@ -269,10 +324,15 @@ function next(){
   if(t==='word'&&nw.filter(w=>w.syl.length>1).length<3)t='build';
   MAKE[t]();
 }
-async function done(first){G.lock=true;G.res.push(first);G.i++;renderDots();await wait(700);G.lock=false;next()}
-function task(title,text){G.text=text;const replay=text?()=>say(text):null;G.replay=replay;G.tries=0;G.lock=false;$('ptitle').textContent=title;$('sayBtn').hidden=!replay;$('recBtn').hidden=!(S.own&&text);$('sayText').hidden=true;$('stage').innerHTML='';if(replay)setTimeout(replay,350)}
+async function done(first){G.lock=true;if(first){owlDo('hop');burst()}G.res.push(first);G.i++;renderDots();await wait(700);G.lock=false;next()}
+function task(title,text){LC=S.case==='lower'||(S.case==='mix'&&Math.random()<.5);G.text=text;const replay=text?()=>say(text):null;G.replay=replay;G.tries=0;G.lock=false;$('ptitle').textContent=title;$('sayBtn').hidden=!replay;$('recBtn').hidden=!(S.own&&text);$('sayText').hidden=true;$('stage').innerHTML='';if(replay)setTimeout(replay,350)}
 function shake(el){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake')}
-function wrong(el,key){if(G.tries===0)mark(key,false);G.tries++;shake(el);return G.tries>=2}
+function owlDo(c){const o=$('owl');if(!o)return;o.classList.remove('hop','huh');void o.getBoundingClientRect();o.classList.add(c)}
+function burst(){const r=$('stage').getBoundingClientRect();const cx=r.left+r.width/2,cy=r.top+Math.min(r.height/2,180);for(let i=0;i<10;i++){const e=document.createElement('span');e.className='spark';e.textContent='★';const a=i/10*6.283;e.style.left=cx+'px';e.style.top=cy+'px';e.style.setProperty('--dx',Math.cos(a)*(70+rnd(60))+'px');e.style.setProperty('--dy',Math.sin(a)*(70+rnd(60))+'px');document.body.appendChild(e);setTimeout(()=>e.remove(),950)}}
+const CONT=['M','L','S','V','N','R','Z','F','J','H','Š','Ž','Ř','CH'];
+const hint=L=>isV(L)?`krátké „${low(L)}“`:CONT.includes(L)?`„${L==='CH'?'chhh':low(L).repeat(3)}“`:`jen krátce „${low(L)}“, bez é`;
+async function playH(L){const r=S.own?await getRec(low('h:'+L)):null;if(!r)return false;await playBlob(r);return true}
+function wrong(el,key){owlDo('huh');if(G.tries===0)mark(key,false);G.tries++;shake(el);return G.tries>=2}
 function right(key){if(G.tries===0)mark(key,true)}
 const arcHTML=(syl,id,mk)=>`<span class="arc" id="${id}">${syl.map((s,i)=>`<span>${tokens(s).map((t,j)=>ctok(t,mk&&mk(i,j)?'mk':'')).join('')}</span>`).join('')}</span>`;
 const hiArc=id=>i=>{const el=$(id);if(!el)return;[...el.children].forEach((c,j)=>c.classList.toggle('hi',j===i))};
@@ -289,7 +349,7 @@ MAKE.first=()=>{
   task(endM?'Co slyšíš na konci?':'Co slyšíš na začátku?',w.word);
   const L=w.syl.length-1;
   $('stage').innerHTML=`<div class="pic">${w.pic}</div><div class="word" id="rev" style="visibility:hidden">${arcHTML(w.syl,'arcF',(i,j)=>endM?(i===L&&j===tokens(w.syl[L]).length-1):(i===0&&j===0))}</div><div class="row">${tiles(ch)}</div>`;
-  const fin=async(ok)=>{G.lock=true;$('rev').style.visibility='visible';document.querySelectorAll('.tile')[ch.indexOf(ans)].classList.add('ok');await sayList(w.syl,hiArc('arcF'));await say(w.word);done(ok)};
+  const fin=async(ok)=>{G.lock=true;$('rev').style.visibility='visible';document.querySelectorAll('.tile')[ch.indexOf(ans)].classList.add('ok');if(await playH(ans))await wait(250);await sayList(w.syl,hiArc('arcF'));await say(w.word);done(ok)};
   bindTiles('.tile',(b,i)=>{if(ch[i]===ans){right(key);fin(G.tries===0)}else if(wrong(b,key))fin(false);else say(w.word)});
 };
 MAKE.clap=()=>{
@@ -321,7 +381,7 @@ MAKE.build=()=>{
   const got=[false,false];
   task('Slož slabiku, kterou slyšíš',s);
   $('stage').innerHTML=`<div class="row"><div class="slot" id="s0"></div><div class="slot" id="s1"></div></div><div class="row">${cr.map((x,i)=>`<button class="tile tc" data-i="${i}">${ctok(x)}</button>`).join('')}</div><div class="row">${vr.map((x,i)=>`<button class="tile tv" data-i="${i}">${ctok(x)}</button>`).join('')}</div>`;
-  const put=(k,x,b)=>{got[k]=true;const sl=$('s'+k);sl.innerHTML=ctok(x);sl.classList.add('full','pop');if(b)b.classList.add('used')};
+  const put=(k,x,b)=>{if(b)playH(x);got[k]=true;const sl=$('s'+k);sl.innerHTML=ctok(x);sl.classList.add('full','pop');if(b)b.classList.add('used')};
   const fin=async ok=>{G.lock=true;if(!got[0])put(0,c);if(!got[1])put(1,v);await wait(300);await blend(s);done(ok)};
   const check=()=>{if(got[0]&&got[1]){right(key);fin(G.tries===0)}};
   bindTiles('.tc',(b,i)=>{if(got[0])return;if(cr[i]===c){put(0,c,b);check()}else if(wrong(b,key))fin(false);else say(s)});
@@ -347,12 +407,26 @@ MAKE.read=()=>{
   [...$('arcR').children].forEach((el,i)=>el.onclick=()=>{if(G.tries>0&&!G.lock){hiArc('arcR')(i);say(w.syl[i])}});
 };
 
+MAKE.pairs=()=>{
+  const pool=[...knownSet()].filter(x=>x!=='Y');const L=[];let g=0;
+  while(L.length<4&&g++<60){const x=pick(pool,x=>'p:'+x);if(!L.includes(x))L.push(x)}
+  const cards=shuffle(L.flatMap(x=>[{l:x,u:true},{l:x,u:false}]));let open=[],got=0,miss=0;const bad=new Set();
+  task('Pexeso: najdi velké a malé',null);
+  $('stage').innerHTML=`<div class="pex">${cards.map((c,i)=>`<button class="pc" data-i="${i}" aria-label="karta ${i+1}"><span class="f ${isV(c.l)?'v':'c'}">${c.u?c.l:low(c.l)}</span></button>`).join('')}</div>`;
+  const els=[...document.querySelectorAll('.pc')];
+  els.forEach((b,i)=>b.onclick=async()=>{if(G.lock||open.includes(i)||b.classList.contains('ok'))return;b.classList.add('up');open.push(i);if(open.length<2)return;
+    G.lock=true;const [a,c]=open.map(j=>cards[j]);
+    if(a.l===c.l){open.forEach(j=>{els[j].classList.remove('up');els[j].classList.add('ok','pop')});open=[];got++;mark('p:'+a.l,!bad.has(a.l));
+      if(!(await playH(a.l))){const w=WORDS.find(w=>w.t[0]===a.l);if(w)await say(w.word)}
+      G.lock=false;if(got===L.length)done(miss<=3)}
+    else{miss++;owlDo('huh');[a.l,c.l].forEach(l=>{if(!bad.has(l)){bad.add(l);mark('p:'+l,false)}});await wait(1000);open.forEach(j=>els[j].classList.remove('up'));open=[];G.lock=false}});
+};
 function end(){
   const stars=G.res.filter(Boolean).length;
   const left=STICK.filter(s=>!S.stick.includes(s));const st=(left.length?left:STICK)[rnd((left.length?left:STICK).length)];
   S.stick.push(st);S.hist.unshift({d:Date.now(),m:G.mode,n:G.n,s:stars});S.hist=S.hist.slice(0,30);save();
-  $('end').innerHTML=`<h1>Hotovo!</h1><div class="big pop">${st}</div><p style="font-size:22px;margin:0">Nová samolepka. Hvězdičky: <b>${stars} z ${G.n}</b></p><div class="row"><button class="btn pri" id="againR">Ještě jedno kolo</button><button class="btn" id="homeR">Domů</button></div>`;
-  show('end');
+  $('end').innerHTML=`<h1>Hotovo!</h1><div class="scene" id="endScene"></div><p style="font-size:22px;margin:0">Nový vagónek s ${st}. Hvězdičky: <b>${stars} z ${G.n}</b></p><div class="row"><button class="btn pri" id="againR">Ještě jedno kolo</button><button class="btn" id="homeR">Domů</button></div>`;
+  show('end');renderScene($('endScene'),true);
   $('againR').onclick=()=>start(G.mode);$('homeR').onclick=()=>show('home');
   say(stars>=G.n-1?'Výborně!':'Hotovo, šikovný!');
 }
@@ -363,6 +437,8 @@ function renderParent(){
   $('kinfo').textContent=`Slov ve hře: ${words().length} z ${WORDS.length}. Slabik: ${syls().length}.`;
   document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{S.known=+b.dataset.i+1;save();renderParent()});
   $('rate').value=S.rate;$('rateV').textContent=S.rate.toFixed(2)+'×';$('showtxt').checked=S.text;$('own').checked=S.own;renderRec();
+  $('caseSeg').innerHTML=[['upper','VELKÁ'],['lower','malá'],['mix','obojí']].map(c=>`<button class="btn${S.case===c[0]?' on':''}" data-c="${c[0]}">${c[1]}</button>`).join('');
+  document.querySelectorAll('#caseSeg .btn').forEach(b=>b.onclick=()=>{S.case=b.dataset.c;save();renderParent()});
   $('seg').innerHTML=[6,8,10].map(n=>`<button class="btn${S.round===n?' on':''}" data-n="${n}">${n} úkolů</button>`).join('');
   document.querySelectorAll('#seg .btn').forEach(b=>b.onclick=()=>{S.round=+b.dataset.n;save();renderParent()});
   const wk=weakList(10);
@@ -389,16 +465,16 @@ $('recBtn').onclick=async()=>{if(!G||!G.text)return;const was=!!rec;
   const ok=await recordTo(G.text,$('recBtn'),b=>{recMsg(`Uloženo: „${low(G.text)}“`,2500);playBlob(b)});
   if(!ok){recMsg(`Tady mikrofon nejde. Nahraj „${low(G.text)}“ v Diktafonu a <button class="btn" id="recPick">vyber soubor</button>`);$('recPick').onclick=()=>$('recIn').click()}
   else if(!was)recMsg(`Mluv teď: „${low(G.text)}“. Ťukni znovu pro konec.`)};
-let stTab='s';
+let stTab='h';
 const allKeys=()=>idb('readonly',s=>s.getAllKeys());
 async function renderStudio(){
-  const items=stTab==='s'?syls():WORDS.map(w=>w.word);const ks=new Set(((await allKeys())||[]));
-  $('stTabs').innerHTML=[['s','Slabiky'],['w','Slova']].map(t=>`<button class="btn${stTab===t[0]?' on':''}" data-t="${t[0]}">${t[1]}</button>`).join('');
+  const items=stTab==='h'?[...VOW,...ORDER.slice(0,S.known)].map(L=>({k:'h:'+L,h:`${ctok(L)} <small class="small">řekni ${hint(L)}</small>`})):(stTab==='s'?syls():WORDS.map(w=>w.word)).map(x=>({k:x,h:colorize(x)}));const ks=new Set(((await allKeys())||[]));
+  $('stTabs').innerHTML=[['h','Hlásky'],['s','Slabiky'],['w','Slova']].map(t=>`<button class="btn${stTab===t[0]?' on':''}" data-t="${t[0]}">${t[1]}</button>`).join('');
   document.querySelectorAll('#stTabs .btn').forEach(b=>b.onclick=()=>{stTab=b.dataset.t;renderStudio()});
-  const done=items.filter(x=>ks.has(low(x))).length;$('stInfo').textContent=`Hotovo ${done} z ${items.length}.`;
-  $('stList').innerHTML=items.map(x=>`<li><b>${colorize(x)}</b><button class="btn sr" data-x="${x}">Nahrát</button><button class="btn sp" data-x="${x}" aria-label="Přehrát">▶</button><span>${ks.has(low(x))?'✓':''}</span></li>`).join('');
+  const done=items.filter(x=>ks.has(low(x.k))).length;$('stInfo').textContent=`Hotovo ${done} z ${items.length}.`;
+  $('stList').innerHTML=items.map(x=>`<li><b>${x.h}</b><button class="btn sr" data-x="${x.k}">Nahrát</button><button class="btn sp" data-x="${x.k}" aria-label="Přehrát">▶</button><span>${ks.has(low(x.k))?'✓':''}</span></li>`).join('');
   document.querySelectorAll('.sr').forEach(b=>b.onclick=async()=>{const was=!!rec;b.textContent=was?'Nahrát':'Stop';const ok=await recordTo(b.dataset.x,b,bl=>{playBlob(bl);renderStudio()});if(!ok){b.textContent='Nahrát';$('stWarn').hidden=false}});
-  document.querySelectorAll('.sp').forEach(b=>b.onclick=async()=>{const r=await getRec(low(b.dataset.x));r?playBlob(r):tts(b.dataset.x)});
+  document.querySelectorAll('.sp').forEach(b=>b.onclick=async()=>{const r=await getRec(low(b.dataset.x));r?playBlob(r):b.dataset.x.startsWith('h:')?0:tts(b.dataset.x)});
 }
 $('studioBtn').onclick=()=>{S.own=true;save();show('studio')};
 $('recIn').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f||!G||!G.text)return;saveRec(f)};
