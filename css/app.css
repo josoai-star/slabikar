@@ -476,3 +476,7 @@ details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;f
   .stage{flex-direction:row;flex-wrap:wrap;gap:14px 26px;align-content:center}
   .pond{height:58vh}
 }
+@media(max-height:560px){
+  .gobtn{top:calc(50% - var(--lw)*.42);width:clamp(84px,24vmin,130px);height:clamp(84px,24vmin,130px);margin:calc(clamp(84px,24vmin,130px)/-2) 0 0 calc(clamp(84px,24vmin,130px)/-2)}
+  .nest{bottom:calc(88px + var(--sb) + var(--lw)*.9);width:clamp(70px,18vmin,110px)}
+}

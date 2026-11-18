@@ -12,7 +12,7 @@ HRUŠ-KA 🍐|JA-HO-DA 🍓|HVĚZ-DA ⭐|LOĎ ⛵|KLÍČ 🔑|KNI-HA 📖|JE-ŽE
 PO-NOŽ-KA 🧦|KAL-HO-TY 👖|TRIČ-KO 👕|ŠA-TY 👗|BA-LÓN 🎈|KOST-KA 🎲|BU-BEN 🥁|KY-TA-RA 🎸|TRUM-PE-TA 🎺|SLUN-CE ☀️|MRAK ☁️
 DU-HA 🌈|O-HEŇ 🔥|SNĚ-HU-LÁK ☃️|STROM 🌳|KYT-KA 🌼|HOU-BA 🍄|LE-TA-DLO ✈️|TRAK-TOR 🚜|PO-LÉV-KA 🍲|CHLÉB 🍞|MLÉ-KO 🥛
 VEJ-CE 🥚|ZMRZ-LI-NA 🍦|BON-BON 🍬|ŽI-DLE 🪑|LŽÍ-CE 🥄
-A-NA-NAS 🍍|AU-TO-BUS 🚌|AN-DĚL 👼|A-VO-KÁ-DO 🥑|E-MA 👧|OV-CE 🐑|O-REL 🦅|O-ŘECH 🌰|OK-NO 🪟|U-CHO 👂|ÚS-TA 👄|U-LI-TA 🐚|U-FO 🛸
+A-NA-NAS 🍍|AU-TO-BUS 🚌|AN-DĚL 👼|A-VO-KÁ-DO 🥑|OV-CE 🐑|O-REL 🦅|O-ŘECH 🌰|OK-NO 🪟|U-CHO 👂|ÚS-TA 👄|U-LI-TA 🐚|U-FO 🛸
 MA-PA 🗺️|LAM-PA 💡|LU-PA 🔍|PO-LE 🌾|MA-SO 🥩|SE-LE 🐷|TE-LE 🐮|MOST 🌉|LIST 🍃|ME-TLA 🧹|PA-LE-TA 🎨|TLA-PA 🐾|STO 💯|PO-STEL 🛏️
 JO-JO 🪀|JE-TEL 🍀|O-LEJ 🛢️|JE-LEN 🦌|PÁV 🦚|VÍ-LA 🧚|VA-NA 🛁|VLK 🐺|PÁ-NEV 🍳|NO-TA 🎵|NI-TĚ 🧵|MI-MI-NO 👶|TE-NIS 🎾
 PLA-NE-TA 🪐|AN-TÉ-NA 📡|TU-LEŇ 🦭|DĚ-DA 👴|MED 🍯|LED 🧊|DÍ-TĚ 🧒|DI-A-MANT 💎|PĚT 5️⃣|OSM 8️⃣|DVA 2️⃣|DE-SET 🔟

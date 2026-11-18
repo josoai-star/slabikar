@@ -75,8 +75,9 @@ function renderMap() {
     const reg = REGIONS[r % REGIONS.length], y1 = total - 70 - (r * 4 + 3.5) * H, y2 = r === 0 ? total : total - 70 - (r * 4 - .5) * H;
     bands += `<rect x="0" y="${f1(y1)}" width="${W}" height="${f1(y2 - y1)}" fill="${REGBG[reg.id]}"/>`;
     const em = [...REGEMO[reg.id].matchAll(/\p{Extended_Pictographic}️?/gu)].map(m => m[0]);
-    em.forEach((e, i) => { const zz = r * 4 + i * 1.3 + .5, [x] = pt(zz); bands += `<text x="${x > W / 2 ? 46 : W - 46}" y="${f1(total - 70 - zz * H)}" font-size="40" text-anchor="middle" class="emo" opacity=".85">${e}</text>`; });
-    bands += `<text class="rname" x="${W / 2}" y="${f1(y1 + 44)}" text-anchor="middle" font-size="30" font-weight="800" fill="${reg.id === 'vesmir' ? '#fff' : INK}" opacity=".55">${reg.n}</text>`;
+    em.slice(0, 2).forEach((e, i) => { const zz = r * 4 + i * 1.3 + .5, [x] = pt(zz); bands += `<text x="${x > W / 2 ? 46 : W - 46}" y="${f1(total - 70 - zz * H)}" font-size="40" text-anchor="middle" class="emo" opacity=".85">${e}</text>`; });
+    const lx = pt(r * 4 + 3.3)[0] > W / 2 ? 96 : W - 96;
+    bands += `<text class="rname" x="${f1(lx)}" y="${f1(y1 + 44)}" text-anchor="middle" font-size="30" font-weight="800" fill="${reg.id === 'vesmir' ? '#fff' : INK}" opacity=".55">${reg.n}</text>`;
   }
   for (let z = 0; z < N; z++) { const [x, y] = pt(z); if (!z) path = `M${f1(x)} ${f1(total)}L${f1(x)} ${f1(y)}`; else { const [px, py] = pt(z - 1); path += `C${f1(px)} ${f1(py - H * .5)} ${f1(x)} ${f1(y + H * .5)} ${f1(x)} ${f1(y)}`; } }
   for (let z = 0; z < N; z++) {
@@ -88,7 +89,7 @@ function renderMap() {
 <text y="${z === 0 ? 8 : 13}" text-anchor="middle" font-size="${z === 0 ? 22 : lab === 'CH' ? 30 : 38}" font-weight="700" fill="${col}">${z === 0 ? 'AEIOU' : lab}</text>
 ${got ? '' : `<g transform="translate(22 -30) scale(.9)" color="#6d6780"><circle r="14" fill="#fff" stroke="${INK}" stroke-width="2.5"/><svg x="-10" y="-10" width="20" height="20" viewBox="0 0 24 24">${ICON.lock.replace(/<\/?svg[^>]*>/g, '')}</svg></g>`}
 ${pets.map((p, i) => `<svg x="${(x > W / 2 ? -1 : 1) * (52 + i * 44) - 22}" y="-26" width="46" height="46" viewBox="0 0 120 120">${petInner(p)}</svg>`).join('')}
-${now ? `<g class="mtrain" transform="translate(-34 -96)"><svg width="68" height="66" viewBox="0 -44 204 190">${locoSVG().replace(/<\/?svg[^>]*>/g, '')}</svg></g>` : ''}</g>`;
+${now ? `<g transform="translate(-52 -136)"><g class="mtrain"><svg width="104" height="97" viewBox="0 -44 204 190">${locoSVG().replace(/<\/?svg[^>]*>/g, '')}</svg></g></g>` : ''}</g>`;
   }
   $('mapBox').innerHTML = `<svg viewBox="0 0 ${W} ${total}" aria-label="Mapa trati">${bands}<path d="${path}" fill="none" stroke="#9a6a3e" stroke-width="22" stroke-linecap="round"/><path d="${path}" fill="none" stroke="#f5d9a6" stroke-width="10" stroke-dasharray="4 14" stroke-linecap="round"/>${nodes}</svg>`;
   $$('.mnode', $('mapBox')).forEach(n => n.onclick = () => {

@@ -16,7 +16,7 @@ function startRide(mode, o) {
   o = o || {}; unlock();
   G = { mode, i: 0, n: S.round, res: [], lock: false, lastKey: null, used: new Set(), prev: null, tk: 0, told: new Set(), streak: 0, clean: [], cnt: {}, dead: false };
   if (o.focus !== undefined) G.focus = o.focus;
-  const L = zoneLetter(S.pos); G.intro = !!(L && o.focus === undefined && !S.seen['L' + L] && S.known < S.pos);
+  const L = zoneLetter(S.pos); G.intro = !!(L && mode === 'mix' && o.focus === undefined && !S.seen['L' + L] && S.known < S.pos);
   show('play'); next();
 }
 function quitRide() { if (G) { G.dead = true; (G.clean || []).forEach(f => { try { f(); } catch (e) {} }); } stopVoice(); if (cap && cap.job) cap.job.cancel(); G = null; }
