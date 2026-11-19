@@ -69,6 +69,11 @@ const knownN = () => Math.max(S.known | 0, Math.min(S.pos, ORDER.length));
 const knownSet = () => new Set([...VOW, ...ORDER.slice(0, knownN())]);
 const words = () => { const k = knownSet(); return WORDS.filter(w => w.t.every(t => k.has(t))); };
 const wordsAt = fn => { const k = knownSet(); return WORDS.filter(w => k.has(fn(w))); };   /* stačí znát jednu hlásku */
+/* v režimu „jen můj hlas“ se vybírá jen to, co je nahrané (RWor/RSor: když nic, tak aspoň něco) */
+const RW = arr => recOnly() ? arr.filter(w => hasK(w.word)) : arr;
+const RS = arr => recOnly() ? arr.filter(x => hasK(x)) : arr;
+const RWor = arr => { const r = RW(arr); return r.length ? r : arr; };
+const RSor = arr => { const r = RS(arr); return r.length ? r : arr; };
 const cons = () => ORDER.slice(0, knownN()).filter(t => t !== 'Y');
 const syls = () => cons().flatMap(c => VOW.map(v => c + v));
 const mark = (k, ok) => { const s = S.stats[k] || (S.stats[k] = { r: 0, w: 0 }); ok ? s.r++ : s.w++; s.t = Date.now(); save(); };
@@ -97,16 +102,33 @@ const petById = id => S.pets.find(p => p.id === id);
 function badName(n) { n = n.toUpperCase(); return NAMEBAD.some(b => n.includes(b)); }
 /* tři jména ze slabik, které dítě zná (nebo právě pozná) */
 function nameIdeas(z) {
+  /* nejdřív skutečná/legrační jména, která jdou přečíst (známá písmenka + to právě nové) */
+  const ks = knownSet(), nx = ORDER[knownN()]; const ks2 = new Set(ks); if (nx) ks2.add(nx);
+  if (ks.size <= 5) { ks2.add('M'); ks2.add('L'); }
+  const L0 = zoneLetter(z), used = new Set(S.pets.map(p => p.name.join('')));
+  const readable = NAMES.filter(n => { const w = n.join(''); return !used.has(w) && tokens(w).map(base).every(t => ks2.has(t)); });
+  if (readable.length >= 3) {
+    const first = readable.filter(n => tokens(n[0])[0] === L0), out = [];
+    shuffle(first).slice(0, 2).forEach(n => out.push(n));
+    shuffle(readable).forEach(n => { if (out.length < 3 && !out.includes(n)) out.push(n); });
+    return out;
+  }
+  return nameIdeasRnd(z);
+}
+function nameIdeasRnd(z) {
   let cs = cons();
   const nx = ORDER[knownN()]; if (cs.length < 3 && nx && nx !== 'Y') cs = cs.concat([nx]);
   if (cs.length < 2) cs = cs.concat(['M', 'L'].filter(c => !cs.includes(c)));
   const L = zoneLetter(z); const first = L && L !== 'Y' && cs.includes(L) ? L : null;
   const have = new Set(S.pets.map(p => p.name.join('')));
   const out = []; let guard = 0;
+  /* jen můj hlas: jména jen z nahraných slabik, ať je kamarád slyšet */
+  const rs = recOnly() ? cs.flatMap(c => VOW.map(v => c + v)).filter(hasK) : [];
+  const fp = first ? rs.filter(x => tokens(x)[0] === first) : [];
   while (out.length < 3 && guard++ < 400) {
-    const c1 = first && out.length < 2 ? first : pickOne(cs);
-    const three = cs.length >= 5 && Math.random() < .22;
-    const syl = [c1 + pickOne(VOW), pickOne(cs) + pickOne(VOW)]; if (three) syl.push(pickOne(cs) + pickOne(VOW));
+    const three = cs.length >= 5 && Math.random() < .22; let syl;
+    if (rs.length >= 3) { syl = [first && out.length < 2 && fp.length ? pickOne(fp) : pickOne(rs), pickOne(rs)]; if (three) syl.push(pickOne(rs)); }
+    else { const c1 = first && out.length < 2 ? first : pickOne(cs); syl = [c1 + pickOne(VOW), pickOne(cs) + pickOne(VOW)]; if (three) syl.push(pickOne(cs) + pickOne(VOW)); }
     const n = syl.join('');
     if (badName(n) || have.has(n) || out.some(o => o.join('') === n)) continue;
     if (syl[0] === syl[1] && Math.random() < .6) continue;

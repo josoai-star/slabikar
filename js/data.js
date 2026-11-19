@@ -73,9 +73,32 @@ const PH = {
   station:'Stanice!', egg:'Vajíčko! Ťukej na něj.', name:'Jak se bude jmenovat?', gift:'Dárek! Otevři ho.',
   hat:'Komu dáš čepici?', letter:'Nové písmenko!', night:'Zlaté vajíčko se vylíhne zítra.',
   hatch:'Zlaté vajíčko se klube!', medal:'Medaile pro tebe!', sleep:'Sovička jde spát. Zítra jedeme dál!',
-  end:'Hotovo, šikovný!'
+  end:'Hotovo, šikovný!',
+  /* chválí snahu, pozornost a vytrvalost (growth mindset) */
+  ok7:'Dobře posloucháš!', ok8:'Čteš čím dál líp!', ok9:'Pěkně přečteno!', ok10:'Trénink se vyplácí!', ok11:'Vidíš, jak ti to jde?',
+  re1:'Nevzdáváš se, super!', re2:'Napodruhé to vyšlo!', re3:'Zkoušet znovu se vyplatí!', re4:'Opravil sis to. Výborně!',
+  oo1:'Chyba nevadí, z chyb se učíme.', oo2:'Hmm, ještě ne. Zkus to znovu.', oo3:'Klidně si to poslechni ještě jednou.',
+  hd1:'Tohle bylo těžké. Příště to půjde líp.', hd2:'Nevadí, ukážu ti to.', hd3:'Těžké úkoly nás učí nejvíc.',
+  en2:'Dobrá práce! Každá jízda tě posouvá.', en3:'Jsi zase o kousek dál!', en4:'Dneska ses zase něco naučil.'
 };
-const PRAISE = ['ok1','ok2','ok3','ok4','ok5','ok6'];
+/* skupiny vět: hra z nich vybírá; ve studiu jsou nadpisy, ať jde nahrát po svém */
+const PHG = {
+  praise: ['ok1','ok2','ok3','ok4','ok5','ok6','ok7','ok8','ok9','ok10','ok11'],
+  retry: ['re1','re2','re3','re4'],
+  oops: ['no1','no2','oo1','oo2','oo3'],
+  hard: ['hd1','hd2','hd3'],
+  end: ['end','en2','en3','en4']
+};
+const PHSEC = [
+  ['Zadání úkolů', ['first','last','clap','find','findh','build','word','read','pick','pairs','paint','speak','mole','letter']],
+  ['Pochvala za správnou odpověď', PHG.praise],
+  ['Když to vyjde napodruhé', PHG.retry],
+  ['Když se splete (povzbuzení)', PHG.oops],
+  ['Když to nejde ani napodruhé', PHG.hard],
+  ['Konec jízdy', PHG.end],
+  ['Vláček, vajíčka a dárky', ['hello','go','station','egg','name','gift','hat','night','hatch','medal','sleep']]
+];
+const PRAISE = PHG.praise;
 
 /* Samolepky (náklad do vagónků) */
 const STICK = ['🦄','🐙','🦖','🐳','🦀','🐞','🐧','🦜','🐢','🦩','🐬','🐼','🐨','🦘','🐊','🦚','🐠','🐲','🌻','🍀','🍒','🍩','🧁','🚁','🛸','🏰','🎠','🪁','🧸','⚓','🛶','🌋','🎪','🦭','🐿️','🦥','🪐','🌵','🐝','🍉'];
@@ -93,3 +116,27 @@ const MEDALS = [25, 50, 100, 200, 350, 500, 750, 1000, 1500, 2000, 3000, 5000];
 const NAMEBAD = ['KAK','PIP','PIC','PIČ','SER','ČUR','CUR','VOL','JEB','SUK','ŠUK','BUZ','KAD','MOČ','ŘIT','RIT','ŽID','NAC','DUR','PAK','LUL',
   'KOZ','ZAB','BIJ','KUR','DUP','ŠUL','NUL','TUP','FUJ','HOV','PRD','MRD','KOK','CEC','DEB','BLB','HNU','PEN','VAG','CIP','PIZ','HUJ','LOL',
   'NEG','NIG','GEJ','HOM','FEN','ČUB','ROM','CIK','SEX','HIT','SAT','JED','ZLO','ZLE','ZLA','BOL','NEM','NUD','SMU','VIN','LEN','HAD','HLU'];
+
+/* Jména kamarádů: skutečná a legrační, ze slabik, které jdou přečíst. Nabízí se jen ta, která dítě umí. */
+const NAMES = `MI-MI|MO-MO|MU-MU|LU-LU|LI-LI|LO-LA|LA-LA|LO-LO|MI-LU|MO-LI|LU-MI|ME-LO|MÍ-LA|
+PU-PU|PO-PO|PA-PU|PU-PÍK|PE-PÍK|PO-LÍK|LU-PÍK|PA-PI-LO|PI-MO|PU-MA|
+SU-SU|SÁ-SA|SO-SO|MI-SA|LI-SA|PI-SÍK|SU-MÍK|SA-LÁ-MEK|SO-PO-LÍK|
+TU-TU|TO-TO|TI-TI|TO-MÍK|TU-LÍK|TO-PÍK|MO-TÁ-LEK|PE-TU-LE|TA-PI-TU|
+JU-JU|JO-JO|JU-PÍ|JO-LI|MA-JÁ-LEK|JE-TÍK|
+VO-VO|VI-VI|VÍ-LA|VA-LÍ-ČEK|VO-PI-ČÁK|
+NU-NU|NO-NO|NI-NA|NE-LI|NO-SÍ-LEK|MO-NI|NA-NU|
+DU-DU|DO-DO|DÁ-DA|DI-DI|DO-NÍK|MA-DLA|DU-PÍK|
+KO-KO|KU-KU|KI-KI|KU-KÍK|KO-MÍK|KU-LÍK|KO-LO-TOČ|LO-KÍK|MA-KÁ-ČEK|KO-KO-SKA|
+RU-RU|RO-RO|RA-RA|MU-RÍK|KO-RÁ-LEK|DRA-KÍK|PRA-SÍK|ŽRA-LÍK|
+ZU-ZU|ZI-ZI|ZO-ZO|ZU-BÍK|ZA-JÍ-ČEK|
+BU-BU|BO-BO|BI-BI|BU-BÁK|BO-BEK|BÁ-BO-RA|BAM-BU-LE|BU-BLI-NA|BO-BÍK|BA-BU-LE|
+HU-HU|HO-HO|HA-HA|HO-PÍK|HU-BÍK|HOP-SA-LÍK|HU-LÁ-ČEK|
+BY-DLÍK|MY-ŠÁK|SY-SEL|
+CI-CI|CU-CU|CO-CO|CI-LI-NA|CUP-TÍK|
+ČI-ČI|ČU-ČU|ČO-ČO|ČU-ME-LA|ČÍ-ŽEK|ČO-KO-LÁ-DA|
+ŠU-ŠU|ŠI-ŠI|ŠMU-DLA|ŠI-ŠKA|ŠUŠ-NÍK|ŠO-PÍK|PA-ŠÍK|
+ŽU-ŽU|ŽI-ŽI|ŽU-ŽÍK|ŽA-BÍK|ŽE-LÍK|
+ŘÍ-ŘA|ŘE-PÍK|BŘÍ-ŠEK|HŘÍ-BEK|
+CHU-CHU|CHO-CHO|CHLU-PÁČ|CHRU-PÍK|CHO-BO-TÍK|
+FU-FU|FI-FI|FÍ-KUS|FLÍ-ČEK|FU-NÍK|
+GU-GU|GO-GO|GU-LÁŠ|GO-GO-LÍN|GU-MÍK`.replace(/\n/g, '').split('|').map(x => x.trim()).filter(Boolean).map(x => x.split('-'));

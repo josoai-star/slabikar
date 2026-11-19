@@ -22,7 +22,9 @@ Slova (332, s obrázky) se nabízejí jen z písmenek, která dítě zná. Co ne
 
 - Písmenka, která dítě zná (přesune vláček), délka jízdy, počet jízd na písmenko, denní limit jízd, velká/malá písmena.
 - Statistika: co ještě nejde, poslední jízdy.
-- **Vlastní hlas:** Nahrávací studio nahrává jedno po druhém (hlásky, slabiky, slova, věty sovičky), samo ořízne ticho a srovná hlasitost. Co chybí, dořekne předčítání prohlížeče.
+- **Kdo mluví:** „Jen můj hlas“ (předčítání nikdy nenaskočí), „Můj hlas + předčítání“, nebo „Jen předčítání“. Volitelně „vybírat jen nahrané“.
+- **Nahrávací studio:** záložka „Teď potřeba“ obsahuje přesně to, co hra u současných písmenek (a jednoho dalšího) může říct: hlásky, slabiky, slova, slabiky ze slov, jména kamarádů a věty sovičky. Nahrává se jedno po druhém, samo ořízne ticho a srovná hlasitost. Věty (zadání, pochvaly, povzbuzení) jde nahrát po svém, hra střídá ty nahrané.
+- Pochvaly chválí snahu a vytrvalost (growth mindset): jiné věty za správnou odpověď, za opravu napodruhé, po chybě a u těžkého úkolu.
 - **Hlas na víc zařízení:** „Uložit hlas.json“ → nahraj soubor do kořene webu vedle `index.html` a každé zařízení si ho při spuštění stáhne samo.
 
 ## Technika

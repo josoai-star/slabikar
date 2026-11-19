@@ -96,7 +96,7 @@ ${now ? `<g transform="translate(-52 -136)"><g class="mtrain"><svg width="104" h
     const z = +n.dataset.z;
     if (z > S.pos) { sfx('no'); pokeCls(n.querySelector('circle'), 'shake'); return; }
     const L = zoneLetter(z); sfx('tap');
-    if (L) playH(L); else if (z === 0) tts('a, e, i, o, u');
+    if (L) playH(L); else if (z === 0) playH('A');
     setTimeout(() => startRide('mix', { focus: L || null }), 500);
   });
   requestAnimationFrame(() => { const sc = $('mapScroll'), svg = sc.querySelector('svg'); if (!svg) return; const k = svg.getBoundingClientRect().height / total; sc.scrollTop = Math.max(0, (total - 70 - S.pos * H) * k - sc.clientHeight * .6); });
@@ -163,7 +163,6 @@ function segBtns(id, opts, cur, set) {
   $$('.btn', $(id)).forEach(b => b.onclick = () => { const v = b.dataset.v; set(isNaN(+v) || v === '' ? v : +v); save(); renderParent(); });
 }
 function renderVoice() {
-  const vb = $('vbanner'); if (vb) vb.hidden = !!voice || S.own;
   const vs = $('vstat'); if (!vs) return;
   vs.textContent = voice ? `Teď mluví: ${voice.name}.` : hasTTS ? 'Český hlas se nenašel. Hra zkusí mluvit i tak a ukáže text.' : 'Prohlížeč neumí mluvit. Čti nahlas ty, text se ukáže.';
   const sel = $('vsel'); sel.innerHTML = csV.map(v => `<option${voice && v.name === voice.name ? ' selected' : ''}>${esc(v.name)}</option>`).join(''); sel.hidden = csV.length < 2; $('vselL').hidden = csV.length < 2;
@@ -174,7 +173,12 @@ function renderParent() {
   $('kinfo').textContent = `Slov ve hře: ${words().length} z ${WORDS.length}. Slabik: ${syls().length}. Vláček je ve stanici ${zoneLabel(S.pos)}.`;
   $$('.chip', $('chips')).forEach(b => b.onclick = () => { const i = +b.dataset.i; S.known = i; S.pos = i; S.step = 0; for (let j = 0; j < i; j++) S.seen['L' + ORDER[j]] = 1; save(); renderParent(); });
   $('rate').value = S.rate; $('rateV').textContent = S.rate.toFixed(2) + '×';
-  $('showtxt').checked = S.text; $('own').checked = S.own; $('recPlay').checked = S.recPlay; $('sfxOn').checked = S.sfx; $('speakOn').checked = S.speak !== false;
+  $('showtxt').checked = S.text; $('recPlay').checked = S.recPlay; $('sfxOn').checked = S.sfx; $('speakOn').checked = S.speak !== false;
+  segBtns('vmSeg', [['own', 'Jen můj hlas'], ['mix', 'Můj hlas + předčítání'], ['tts', 'Jen předčítání']], vmode(), v => { S.vmode = v; S.own = v !== 'tts'; });
+  $('recOnly').checked = !!S.recOnly; $('recOnlyF').hidden = vmode() === 'tts';
+  $('vmInfo').textContent = { own: 'Mluví jen tvůj hlas, předčítání nikdy nenaskočí. Co nahrané není, hra neřekne, proto nahraj ve studiu záložku „Teď potřeba“.', mix: 'Co máš nahrané, říká tvým hlasem, zbytek dořekne předčítání.', tts: 'Všechno říká předčítání prohlížeče.' }[vmode()];
+  const miss = studioItems('n').filter(x => !hasK(x.k)).length;
+  $('needInfo').innerHTML = miss ? `Pro písmenka, která teď hra používá, chybí <b>${miss}</b> nahrávek.` : 'Všechno, co hra teď používá, máš nahrané. ✓';
   segBtns('caseSeg', [['upper', 'VELKÁ'], ['lower', 'malá'], ['mix', 'obojí']], S.case, v => S.case = v);
   segBtns('seg', [[6, '6 úkolů'], [8, '8 úkolů'], [10, '10 úkolů']], S.round, v => S.round = v);
   segBtns('paceSeg', [[2, '2 jízdy'], [3, '3 jízdy'], [4, '4 jízdy'], [5, '5 jízd']], S.pace, v => S.pace = v);
@@ -190,14 +194,14 @@ async function renderRec() { const n = await countRec(); $('recCount').textConte
 function bindParent() {
   $('rate').oninput = e => { S.rate = +e.target.value; $('rateV').textContent = S.rate.toFixed(2) + '×'; save(); };
   $('showtxt').onchange = e => { S.text = e.target.checked; save(); };
-  $('own').onchange = e => { S.own = e.target.checked; save(); renderVoice(); };
+  $('recOnly').onchange = e => { S.recOnly = e.target.checked; save(); };
   $('recPlay').onchange = e => { S.recPlay = e.target.checked; save(); };
   $('sfxOn').onchange = e => { S.sfx = e.target.checked; save(); };
   $('speakOn').onchange = e => { S.speak = e.target.checked; save(); };
   $('vsel').onchange = e => { S.voice = e.target.value; save(); loadV(); tts('Ahoj, jdeme číst.'); };
   $('vtest').onclick = () => { unlock(); say('Ahoj, jdeme číst. Ma, me, mi, mo, mu.'); };
-  $('micTest').onclick = async () => { unlock(); try { await openMic(); $('micInfo').textContent = 'Mikrofon funguje. Hra „Řekni to“ je zapnutá.'; } catch (e) { $('micInfo').textContent = 'Mikrofon nejde. Povol ho v nastavení prohlížeče.'; } };
-  $('studioBtn').onclick = () => { S.own = true; save(); show('studio'); };
+  $('micTest').onclick = async () => { unlock(); try { await openMic(); $('micInfo').textContent = 'Mikrofon funguje. Hra „Řekni to“ je zapnutá. Dokud je hra otevřená, už se ptát nebude.'; } catch (e) { $('micInfo').textContent = 'Mikrofon nejde. Povol ho v nastavení prohlížeče.'; } };
+  $('studioBtn').onclick = () => { if (vmode() === 'tts') { S.vmode = 'own'; S.own = true; save(); } stTab = 'n'; show('studio'); };
   $('recClear').onclick = async () => { if (!confirm('Opravdu smazat všechny nahrávky?')) return; await clearRec(); renderRec(); };
   $('packOut').onclick = async () => {
     $('packInfo').textContent = 'Balím…'; const { blob, n } = await exportPack();
@@ -207,36 +211,52 @@ function bindParent() {
   $('packIn').onclick = () => $('packFile').click();
   $('packFile').onchange = async e => {
     const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
-    try { const n = await importPack(await f.text(), 'rec'); S.own = true; save(); $('packInfo').textContent = `Načteno ${n} nahrávek.`; renderParent(); }
+    try { const n = await importPack(await f.text(), 'rec'); if (vmode() === 'tts') { S.vmode = 'own'; S.own = true; } save(); $('packInfo').textContent = `Načteno ${n} nahrávek.`; renderParent(); }
     catch (x) { $('packInfo').textContent = 'Tohle není soubor s hlasem.'; }
   };
   $('resetBtn').onclick = () => { $('resetAsk').hidden = false; };
   $('resetNo').onclick = () => { $('resetAsk').hidden = true; };
   $('resetYes').onclick = () => {
-    const keep = { known: 0, rate: S.rate, round: S.round, text: S.text, voice: S.voice, own: S.own, case: S.case, pace: S.pace, limit: S.limit, sfx: S.sfx, mic: S.mic, recPlay: S.recPlay, packSig: S.packSig };
+    const keep = { known: 0, rate: S.rate, round: S.round, text: S.text, voice: S.voice, own: S.own, vmode: S.vmode, case: S.case, pace: S.pace, limit: S.limit, sfx: S.sfx, mic: S.mic, recPlay: S.recPlay, packSig: S.packSig };
     S = Object.assign(JSON.parse(JSON.stringify(DEF)), keep); save(); $('resetAsk').hidden = true; renderParent();
   };
 }
 
 /* ---------- nahrávací studio ---------- */
-let stTab = 'h';
+let stTab = 'n';
 const ordIdx = t => { const i = ORDER.indexOf(t); return i < 0 ? -1 : i; };
 const needIdx = toks => Math.max(-1, ...toks.map(ordIdx));
 function studioItems(tab) {
   const kn = knownN();
-  if (tab === 'h') return [...VOW, ...ORDER.filter(t => t !== 'Y')].map(L => ({ k: 'h:' + L, h: `${ctok(L)} <small class="small">řekni ${hintH(L)}</small>`, show: shown(L), sub: 'řekni ' + hintH(L), need: ordIdx(L) < kn }));
+  if (tab === 'n') {                                   /* přesně to, co hra teď může říct (+ jedno další písmenko) */
+    const k2 = Math.min(ORDER.length, kn + 1), ks = new Set([...VOW, ...ORDER.slice(0, k2)]), out = [], seen = new Set();
+    const add = (grp, x) => { if (seen.has(low(x.k))) return; seen.add(low(x.k)); out.push(Object.assign({ grp, need: true }, x)); };
+    [...VOW, ...ORDER.slice(0, k2)].forEach(L => add('Hlásky', { k: 'h:' + L }));
+    ORDER.slice(0, k2).filter(t => t !== 'Y').forEach(c => VOW.forEach(v => add('Slabiky', { k: c + v })));
+    const ws = WORDS.filter(w => w.t.every(t => ks.has(t))).sort((a, b) => needIdx(a.t) - needIdx(b.t));
+    ws.forEach(w => add('Slova', { k: w.word, pic: w.pic }));
+    ws.forEach(w => { if (w.syl.length > 1) w.syl.forEach(x => add('Slabiky ze slov', { k: x })); });
+    S.pets.forEach(p => add('Jména kamarádů (vcelku)', { k: p.name.join('') }));
+    NAMES.filter(n => tokens(n.join('')).map(base).every(t => ks.has(t))).forEach(n => add('Jména kamarádů (vcelku)', { k: n.join('') }));
+    studioItems('p').forEach(x => add(x.grp, x));
+    return out;
+  }
+  if (tab === 'h') return [...VOW, ...ORDER].map(L => ({ k: 'h:' + L, h: `${ctok(L)} <small class="small">řekni ${hintH(L)}</small>`, show: shown(L), sub: 'řekni ' + hintH(L), need: ordIdx(L) < kn }));
   if (tab === 's') {
     const basic = ORDER.filter(t => t !== 'Y').flatMap(c => VOW.map(v => c + v));
     const extra = [...new Set(WORDS.slice().sort((a, b) => needIdx(a.t) - needIdx(b.t)).flatMap(w => w.syl))].filter(s => !basic.includes(s));
     return basic.map(s => ({ k: s, need: ordIdx(tokens(s)[0]) < kn, grp: 'Slabiky' })).concat(extra.map(s => ({ k: s, need: needIdx(tokens(s).map(base)) < kn, grp: 'Slabiky ze slov' })));
   }
   if (tab === 'w') return WORDS.slice().sort((a, b) => needIdx(a.t) - needIdx(b.t)).map(w => ({ k: w.word, pic: w.pic, need: needIdx(w.t) < kn }));
-  return [...new Set(Object.values(PH).concat(REGIONS.map(r => r.hello)))].map(t => ({ k: t, phrase: 1, need: true }));
+  const out = [], seen = new Set();
+  PHSEC.forEach(([g, ids]) => ids.forEach(id => { const t = PH[id]; if (!seen.has(t)) { seen.add(t); out.push({ k: t, phrase: 1, need: true, grp: 'Věty: ' + g }); } }));
+  Object.values(PH).concat(REGIONS.map(r => r.hello)).forEach(t => { if (!seen.has(t)) { seen.add(t); out.push({ k: t, phrase: 1, need: true, grp: 'Věty: ostatní' }); } });
+  return out;
 }
 const hintH = L => isV(L) ? `krátké „${low(L)}“` : CONT.includes(L) ? `„${L === 'CH' ? 'chhh' : low(L).repeat(3)}“` : `jen krátce „${low(L)}“, bez é`;
 async function renderStudio() {
   const items = studioItems(stTab), ks = new Set(await allKeys());
-  $('stTabs').innerHTML = [['h', 'Hlásky'], ['s', 'Slabiky'], ['w', 'Slova'], ['p', 'Věty sovičky']].map(t => `<button class="btn sm${stTab === t[0] ? ' on' : ''}" data-t="${t[0]}">${t[1]}</button>`).join('');
+  $('stTabs').innerHTML = [['n', 'Teď potřeba'], ['h', 'Hlásky'], ['s', 'Slabiky'], ['w', 'Slova'], ['p', 'Věty sovičky']].map(t => `<button class="btn sm${stTab === t[0] ? ' on' : ''}" data-t="${t[0]}">${t[1]}</button>`).join('');
   $$('#stTabs .btn').forEach(b => b.onclick = () => { stTab = b.dataset.t; renderStudio(); });
   const has = x => ks.has(low(x.k)), done = items.filter(has).length, needL = items.filter(x => x.need && !has(x));
   $('stInfo').innerHTML = `Hotovo ${done} z ${items.length}.${needL.length ? ` Hned potřeba: <b>${needL.length}</b>.` : ''}<div class="prog"><i style="width:${items.length ? done / items.length * 100 : 0}%"></i></div>`;
@@ -245,7 +265,7 @@ async function renderStudio() {
   let grp = '';
   $('stList').innerHTML = items.map(x => {
     const g = x.grp && x.grp !== grp ? `<li class="grp">${(grp = x.grp)}</li>` : '';
-    const lab = x.phrase ? esc(x.k) : stTab === 'h' ? x.h : (x.pic ? `<span class="emo">${x.pic}</span> ` : '') + colorize(x.k);
+    const lab = x.phrase ? esc(x.k) : x.k.startsWith('h:') ? `${ctok(x.k.slice(2))} <small class="small">řekni ${hintH(x.k.slice(2))}</small>` : (x.pic ? `<span class="emo">${x.pic}</span> ` : '') + colorize(x.k);
     return `${g}<li><b style="${x.phrase ? 'font-size:17px' : ''}">${lab}${x.need && !has(x) ? ' <small class="small">• teď</small>' : ''}</b><button class="btn sm sr" data-x="${esc(x.k)}">Nahrát</button><button class="btn sm sp" data-x="${esc(x.k)}" aria-label="Přehrát">▶</button><span>${has(x) ? '✓' : ''}</span></li>`;
   }).join('');
   $$('.sr', $('stList')).forEach(b => b.onclick = async () => {
@@ -270,7 +290,7 @@ async function seqRec(items) {
     const x = items[i]; LC = false;
     $('sqN').textContent = `${i + 1} z ${items.length}`;
     $('sqW').className = 'what' + (x.phrase ? ' ph' : ''); $('sqW').innerHTML = x.phrase ? esc(x.k) : x.k.startsWith('h:') ? ctok(x.k.slice(2)) : colorize(x.k);
-    $('sqH').textContent = x.k.startsWith('h:') ? 'Řekni ' + hintH(x.k.slice(2)) : x.pic ? x.pic : '';
+    $('sqH').textContent = x.k.startsWith('h:') ? 'Řekni ' + hintH(x.k.slice(2)) : x.phrase ? (x.grp || '') + ' · řekni po svém, text je jen nápověda' : x.pic ? x.pic : '';
     $('sqS').textContent = 'Připrav se…'; await wait(700); if (stop) break;
     $('sqS').innerHTML = '<span class="dot"></span>Mluv!';
     const res = await new Promise(r => { cut = r; capture(t => r(t), { max: 6, idle: 6, level: v => { const l = $('sqL'); if (l) l.style.width = Math.min(100, v * 700) + '%'; } }).then(ok => { if (!ok) r('fail'); }); });

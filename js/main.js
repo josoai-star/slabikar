@@ -23,6 +23,7 @@
   $('owlBtn').onclick = () => { if (!G || G.lock) return; owlDo('hop'); sfx('hoot'); const o = $('owl'); o.classList.add('talk'); Promise.resolve(G.help && G.help()).then(() => o.classList.remove('talk')); };
   $('nest').onclick = () => { unlock(); if (eggReady()) hatchNight(); else { sfx('hoot'); sayPh('night'); pokeCls($('nest').querySelector('.egg'), 'hit', 400); } };
   bindParent(); bindPlayRec();
+  $('play').addEventListener('pointerdown', () => { if (G) G.lastTap = Date.now(); }, true);
 
   /* sluníčko, mraky a stromy v krajině se dají šťouchnout */
   document.addEventListener('click', e => {

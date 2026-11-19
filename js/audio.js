@@ -15,15 +15,31 @@ function ac() {
   return AC;
 }
 let ttsPrimed = false;
+/* iPhone: bez tohohle tichý režim (přepínač na boku) umlčí efekty, ale nahrávky ne */
+let keepAlive = null;
+const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
+function keepPlayback() {
+  try { if (navigator.audioSession) { if (!cap) navigator.audioSession.type = 'playback'; return; } } catch (e) {}
+  if (!/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent) || !('ontouchend' in document)) return;
+  try {
+    if (!keepAlive) { keepAlive = new Audio(SILENT); keepAlive.loop = true; keepAlive.setAttribute('playsinline', ''); }
+    if (keepAlive.paused) keepAlive.play().catch(() => {});
+  } catch (e) {}
+}
 function unlock() {
   const a = ac();
   if (a && a.state !== 'running') { try { a.resume(); } catch (e) {} }
-  try { if (navigator.audioSession && !cap) navigator.audioSession.type = 'playback'; } catch (e) {}
+  keepPlayback();
   if (!ttsPrimed && hasTTS) { ttsPrimed = true; try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} }
 }
-document.addEventListener('pointerdown', unlock, true);
-document.addEventListener('keydown', unlock, true);
-document.addEventListener('visibilitychange', () => { if (document.hidden) stopVoice(); });
+['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, unlock, true));
+document.addEventListener('visibilitychange', () => { if (document.hidden) { stopVoice(); try { keepAlive && keepAlive.pause(); } catch (e) {} } });
+/* zvukové jádro bývá uspané (první ťuknutí, návrat do aplikace, po předčítání): probudit a počkat */
+function acReady() {
+  const a = ac(); if (!a) return Promise.resolve(false);
+  if (a.state === 'running') return Promise.resolve(true);
+  try { return Promise.race([a.resume().then(() => a.state === 'running', () => false), wait(400).then(() => a.state === 'running')]); } catch (e) { return Promise.resolve(false); }
+}
 
 function tone(o) {
   const a = AC, t0 = a.currentTime + (o.t || 0), d = o.d || .2;
@@ -75,7 +91,11 @@ const SFX = {
   drip() { tone({ f: 1300, f2: 600, d: .08, v: .15 }); },
   squeak(seed) { const r = mulberry((seed || 1) >>> 0), b = 620 + r() * 700, n = 2 + Math.floor(r() * 2); for (let i = 0; i < n; i++) { const f = b * (1 + (r() - .4) * .5); tone({ f, f2: f * (r() < .5 ? 1.35 : .75), t: i * .1, d: .1, v: .2, type: r() < .5 ? 'triangle' : 'sine' }); } }
 };
-function sfx(name, arg) { if (!S.sfx) return; const a = ac(); if (!a || a.state !== 'running') return; try { SFX[name] && SFX[name](arg); } catch (e) {} }
+function sfx(name, arg) {
+  if (!S.sfx || !SFX[name]) return; const a = ac(); if (!a) return;
+  const go = () => { try { SFX[name](arg); } catch (e) {} };
+  if (a.state === 'running') go(); else { const t = Date.now(); acReady().then(ok => { if (ok && Date.now() - t < 600) go(); }); }
+}
 
 /* ---------- předčítání ---------- */
 const hasTTS = 'speechSynthesis' in window;
@@ -112,12 +132,22 @@ const db = () => dbp || (dbp = new Promise(res => {
 }));
 const idb = (mode, fn, store) => db().then(d => d ? new Promise(r => { try { const s = d.transaction(store || 'rec', mode).objectStore(store || 'rec'); const q = fn(s); q.onsuccess = () => r(q.result); q.onerror = () => r(null); } catch (e) { r(null); } }) : null);
 const getRec = async k => (await idb('readonly', s => s.get(k))) || (await idb('readonly', s => s.get(k), 'pack')) || null;
-const putRec = (k, b) => { bufCache.delete(k); return idb('readwrite', s => s.put(b, k)); };
-const delRec = k => { bufCache.delete(k); return idb('readwrite', s => s.delete(k)); };
+const putRec = (k, b) => { bufCache.delete(k); REC.add(k); return idb('readwrite', s => s.put(b, k)); };
+const delRec = k => { bufCache.delete(k); return idb('readwrite', s => s.delete(k)).then(reloadRec); };
 const countRec = async () => { const a = await idb('readonly', s => s.count()), b = await idb('readonly', s => s.count(), 'pack'); return a == null ? null : a + (b || 0); };
-const clearRec = () => { bufCache.clear(); return idb('readwrite', s => s.clear()); };
+const clearRec = () => { bufCache.clear(); return idb('readwrite', s => s.clear()).then(reloadRec); };
 const allKeys = async () => { const a = (await idb('readonly', s => s.getAllKeys())) || [], b = (await idb('readonly', s => s.getAllKeys(), 'pack')) || []; return [...new Set([...a, ...b])]; };
 
+/* Hlas: 'own' = jen moje nahrávky (co chybí, hra nevybírá / neřekne), 'mix' = nahrávky + předčítání, 'tts' = jen předčítání */
+const vmode = () => S.vmode || (S.own ? 'own' : 'tts');
+const useRec = () => vmode() !== 'tts';
+const onlyOwn = () => vmode() === 'own';
+const REC = new Set();                              /* klíče všech nahrávek, ať jde rychle zjistit, co je nahrané */
+const hasK = k => REC.has(low(k));
+const canSay = t => !onlyOwn() || hasK(t);
+const recOnly = () => useRec() && !!S.recOnly;          /* volitelné: vybírat jen nahrané */
+let recLoad = null;
+const reloadRec = () => (recLoad = allKeys().then(ks => { REC.clear(); ks.forEach(k => REC.add(k)); }));
 const bufCache = new Map();
 let curSrc = null, curA = null, voiceTok = 0;
 const decode = ab => new Promise((res, rej) => { try { const p = AC.decodeAudioData(ab, res, rej); if (p && p.catch) p.catch(rej); } catch (e) { rej(e); } });
@@ -146,7 +176,7 @@ function playBlobEl(b) {
 }
 async function playBlob(b, key, rate) {
   stopVoice(); const tk = voiceTok; const a = ac();
-  if (a && a.state === 'running') {
+  if (a && await acReady()) {
     try {
       let buf = key && bufCache.get(key);
       if (!buf) { buf = await decode(await blobAB(b)); if (key) { bufCache.set(key, buf); if (bufCache.size > 90) bufCache.delete(bufCache.keys().next().value); } }
@@ -158,33 +188,46 @@ async function playBlob(b, key, rate) {
   return playBlobEl(b);
 }
 async function playKey(k) { const r = await getRec(k); if (!r) return false; await playBlob(r, k); return true; }
-const hasRec = async k => !!(S.own && await getRec(k));
+const hasRec = async k => useRec() && hasK(k);
 
-function showText(t) { const el = $('sayText'); if (!el) return; if ((!voice && !S.own) || S.text) { el.hidden = false; el.textContent = `Řekni nahlas: „${low(t)}“`; } else el.hidden = true; }
+function showText(t) { const el = $('sayText'); if (!el) return; if ((!voice && !useRec()) || S.text) { el.hidden = false; el.textContent = `Řekni nahlas: „${low(t)}“`; } else el.hidden = true; }
 /* řekne text: vlastní nahrávka, jinak předčítání */
 async function say(t) {
   if (!t) return; showText(t); stopVoice(); const tk = voiceTok;
-  if (S.own) { const r = await getRec(low(t)); if (tk !== voiceTok) return; if (r) { const el = $('sayText'); if (el) el.hidden = !S.text; return playBlob(r, low(t)); } }
+  if (useRec()) { const r = await getRec(low(t)); if (tk !== voiceTok) return; if (r) { const el = $('sayText'); if (el) el.hidden = !S.text; return playBlob(r, low(t)); } }
+  if (onlyOwn()) return;                             /* jen můj hlas: Zuzana nikdy nenaskočí */
   return tts(t);
 }
-async function sayList(arr, on, gap) { const tk0 = G && G.tk; for (let i = 0; i < arr.length; i++) { if (G && G.tk !== tk0) return; on && on(i); await say(arr[i]); await wait(gap == null ? 200 : gap); } on && on(-1); }
+async function sayList(arr, on, gap) { const tk0 = G && G.tk;
+  if (arr.length === 1) { on && on(0); await wait(350); on && on(-1); return; }   /* jednoslabičné slovo: neříkat ho dvakrát */ for (let i = 0; i < arr.length; i++) { if (G && G.tk !== tk0) return; on && on(i); await say(arr[i]); await wait(gap == null ? 200 : gap); } on && on(-1); }
 const sayPh = id => say(PH[id]);
 /* hláska: jen z nahrávky (předčítání neumí „mmm“), samohlásku zvládne i hlas */
-async function playH(L) { if (S.own && await playKey('h:' + low(L))) return true; if (VOW.includes(L)) { await tts(L); return true; } return false; }
+async function playH(L) { if (useRec() && await playKey('h:' + low(L))) return true; if (!onlyOwn() && VOW.includes(L)) { await tts(L); return true; } return false; }
 /* jméno kamaráda: po slabikách z nahrávek, jinak vcelku */
 async function sayName(syl, on) {
-  if (S.own) { let all = true; for (const s of syl) if (!(await getRec(low(s)))) { all = false; break; } if (all) { for (let i = 0; i < syl.length; i++) { on && on(i); await playKey(low(syl[i])); await wait(40); } on && on(-1); return; } }
-  on && on(-1); return tts(syl.join(''));
+  const whole = syl.join('');
+  if (useRec() && hasK(whole)) { stopVoice(); on && on(-1); return playKey(low(whole)); }   /* jméno nahrané vcelku */
+  if (useRec()) { let all = true; for (const s of syl) if (!(await getRec(low(s)))) { all = false; break; } if (all) { for (let i = 0; i < syl.length; i++) { on && on(i); await playKey(low(syl[i])); await wait(40); } on && on(-1); return; } }
+  on && on(-1); if (onlyOwn()) return; return tts(syl.join(''));
 }
-let lastPraise = '';
-async function praise() { let id; do { id = pickOne(PRAISE); } while (id === lastPraise); lastPraise = id; return sayPh(id); }
+/* pochvala a povzbuzení: vybere jen věty, které jdou říct (v režimu „jen můj hlas“ ty nahrané) */
+const lastG = {};
+function sayGroup(g) {
+  const ids = (PHG[g] || []).filter(id => canSay(PH[id])); if (!ids.length) return Promise.resolve(false);
+  let id = pickOne(ids); if (ids.length > 1) while (id === lastG[g]) id = pickOne(ids);
+  lastG[g] = id; return say(PH[id]).then(() => true);
+}
+const praise = () => sayGroup('praise');
 
 /* ---------- mikrofon: nechá se otevřený, drží 0,6 s předstih, najde hlas, ořízne, srovná hlasitost ---------- */
-let cap = null, capT = null;
+let cap = null, capT = null, micStream = null;
+/* povolení stačí jednou: stream se drží po celou dobu běhu aplikace, mezi nahráváním je jen ztlumený */
 async function openMic() {
   if (cap) { clearTimeout(capT); if (cap.ac.state === 'suspended') await cap.ac.resume(); return cap; }
   try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch (e) {}
-  const st = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+  if (!micStream || micStream.getTracks().every(t => t.readyState === 'ended'))
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+  const st = micStream; st.getTracks().forEach(t => { t.enabled = true; });
   const a = ac(); await a.resume();
   const src = a.createMediaStreamSource(st), hp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 90;
   const pr = a.createScriptProcessor(2048, 1, 1), mute = a.createGain(); mute.gain.value = 0;
@@ -198,7 +241,7 @@ async function openMic() {
 }
 function closeMic() {
   if (!cap) return; clearTimeout(capT);
-  try { cap.pr.onaudioprocess = null; cap.src.disconnect(); cap.pr.disconnect(); cap.st.getTracks().forEach(t => t.stop()); } catch (e) {}
+  try { cap.pr.onaudioprocess = null; cap.src.disconnect(); cap.pr.disconnect(); cap.st.getTracks().forEach(t => { t.enabled = false; }); } catch (e) {}
   cap = null; try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
 }
 const idleMic = () => { clearTimeout(capT); capT = setTimeout(closeMic, 25000); };
@@ -267,7 +310,7 @@ async function importPack(text, store) {
   const j = JSON.parse(text); if (!j || !j.items) throw new Error('bad'); let n = 0;
   if (store === 'pack') await idb('readwrite', s => s.clear(), 'pack');
   for (const k of Object.keys(j.items)) { try { await idb('readwrite', s => s.put(urlBlob(j.items[k]), k), store || 'rec'); n++; } catch (e) {} }
-  bufCache.clear(); return n;
+  bufCache.clear(); await reloadRec(); return n;
 }
 /* když u hry leží hlas.json, načte se jednou do každého zařízení */
 async function loadSitePack() {
@@ -277,6 +320,9 @@ async function loadSitePack() {
     const sig = (head.headers.get('etag') || '') + '|' + (head.headers.get('content-length') || '') + '|' + (head.headers.get('last-modified') || '');
     if (S.packSig === sig) return;
     const r = await fetch('hlas.json', { cache: 'no-cache' }); if (!r.ok) return;
-    const n = await importPack(await r.text(), 'pack'); S.packSig = sig; if (n && !S.own) S.own = true; save();
+    const n = await importPack(await r.text(), 'pack'); S.packSig = sig; if (n && vmode() === 'tts') S.vmode = 'own'; save();
   } catch (e) {}
 }
+
+reloadRec();
+addEventListener('pagehide', () => { try { micStream && micStream.getTracks().forEach(t => t.stop()); } catch (e) {} micStream = null; });

@@ -1,6 +1,6 @@
 /* Slabikář — offline: hra se uloží do zařízení a jede i bez internetu */
-const V = 'slabikar-v2';
-const FILES = ['./', 'index.html', 'css/app.css?v=2', 'js/data.js?v=2', 'js/core.js?v=2', 'js/audio.js?v=2', 'js/art.js?v=2', 'js/fx.js?v=2', 'js/games.js?v=2', 'js/ride.js?v=2', 'js/views.js?v=2', 'js/main.js?v=2',
+const V = 'slabikar-v3';
+const FILES = ['./', 'index.html', 'css/app.css?v=3', 'js/data.js?v=3', 'js/core.js?v=3', 'js/audio.js?v=3', 'js/art.js?v=3', 'js/fx.js?v=3', 'js/games.js?v=3', 'js/ride.js?v=3', 'js/views.js?v=3', 'js/main.js?v=3',
   'fonts/andika-latin-400-normal.woff2', 'fonts/andika-latin-ext-400-normal.woff2', 'fonts/andika-latin-700-normal.woff2', 'fonts/andika-latin-ext-700-normal.woff2',
   'fonts/baloo-2-latin-800-normal.woff2', 'fonts/baloo-2-latin-ext-800-normal.woff2', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });

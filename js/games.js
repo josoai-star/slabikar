@@ -20,15 +20,16 @@ const ENDBAD = ['B', 'D', 'G', 'H', 'V', 'Z', 'Ž', 'Y'];
 
 /* které hry jdou hrát s tím, co dítě zná */
 function avail() {
-  const a = [], nw = words(), hasC = cons().length > 0;
-  if (wordsAt(w => w.t[0]).length >= 4) a.push('first', 'mole');
-  a.push('clap', 'find');
+  const a = [], nw = words(), hasC = cons().length > 0, rnw = RW(nw);
+  if (RW(wordsAt(w => w.t[0])).length >= 4) a.push('first', 'mole');
+  if (RW(WORDS).length >= 3) a.push('clap');
+  if (hasC ? RS(syls()).length : RS(VOW.map(v => 'h:' + v)).length) a.push('find');
   if ([...knownSet()].filter(x => x !== 'Y').length >= 4) a.push('pairs');
-  if (hasC) a.push('build');
-  if (nw.filter(w => w.syl.length > 1).length >= 3) a.push('word');
-  if (nw.length >= 4) a.push('read', 'pick');
+  if (hasC && RS(syls()).length) a.push('build');
+  if (nw.filter(w => w.syl.length > 1).length >= 3 && rnw.filter(w => w.syl.length > 1).length) a.push('word');
+  if (nw.length >= 4 && rnw.length) a.push('read', 'pick');
   a.push('paint');
-  if (S.mic && S.speak !== false && (hasC || nw.length >= 3)) a.push('speak');
+  if (S.mic && S.speak !== false && (rnw.length >= 2 || (hasC && RS(syls()).length >= 2))) a.push('speak');
   return a;
 }
 
@@ -45,20 +46,28 @@ function task(type, title, text, o) {
   (G.clean || []).forEach(f => { try { f(); } catch (e) {} }); G.clean = [];
   LC = S.case === 'lower' || (S.case === 'mix' && Math.random() < .5);
   if (o.upper) LC = false;
-  G.type = type; G.tk++; G.text = text; G.tries = 0; G.lock = false;
+  G.type = type; G.tk++; G.text = text; G.tries = 0; G.lock = false; G.revealed = false;
   const tk = G.tk, ph = o.ph || type;
   const sayIt = o.replay || (text ? () => say(text) : null);
   G.replay = sayIt;
   G.help = async () => { await sayPh(ph); if (live(tk) && sayIt) await sayIt(); };
-  $('ptitle').textContent = title; $('sayBtn').hidden = !sayIt; $('recBtn').hidden = !(S.own && S.recPlay && text); $('sayText').hidden = true; $('recMsg').hidden = true;
+  $('ptitle').textContent = title; $('sayBtn').hidden = !sayIt; $('recBtn').hidden = !(useRec() && S.recPlay && text); $('sayText').hidden = true; $('recMsg').hidden = true;
   setTimeout(async () => {
     if (!live(tk)) return;
     if (!G.told.has(ph)) { G.told.add(ph); await sayPh(ph); if (!live(tk) || G.tries || G.lock) return; await wait(120); }
     if (live(tk) && sayIt && !G.lock) { pokeCls($('sayBtn'), 'ring', 2400); sayIt(); }
   }, 380);
+  /* když dítě chvíli nic neťukne, zopakovat (nejvýš dvakrát) */
+  G.lastTap = Date.now(); let reps = 0;
+  if (sayIt) { const iv = setInterval(() => { if (!live(tk) || G.lock || reps >= 2) return clearInterval(iv); if (Date.now() - G.lastTap > 7500) { reps++; G.lastTap = Date.now(); pokeCls($('sayBtn'), 'ring', 2400); sayIt(); } }, 1000); G.clean.push(() => clearInterval(iv)); }
   return tk;
 }
-function wrong(el, key) { stopVoice(); owlDo('huh'); sfx('no'); if (G.tries === 0 && key) mark(key, false); G.tries++; G.streak = 0; shake(el); return G.tries >= 2; }
+function wrong(el, key) { stopVoice(); owlDo('huh'); sfx('no'); if (G.tries === 0 && key) mark(key, false); G.tries++; G.streak = 0; shake(el); if (G.tries >= 2) { G.revealed = true; return true; } return false; }
+/* po chybě: občas povzbudit, pak znovu přehrát */
+function oops(fn) {
+  const tk = G.tk; const p = Math.random() < .5 ? sayGroup('oops') : Promise.resolve();
+  p.then(() => { if (live(tk) && !G.lock) fn(); });
+}
 function right(key) { if (G.tries === 0 && key) mark(key, true); }
 /* konec úlohy: hvězdička za první pokus, vláček popojede */
 async function done(first) {
@@ -69,7 +78,10 @@ async function done(first) {
     if (G.streak >= 3 && G.streak % 2) floatTxt(stageEl(), G.streak + '× ★');
   } else sfx('ping');
   G.res.push(!!first); G.i++; renderTrack();
-  if (first && (await hasRec(low(PH.ok1)) ? Math.random() < .55 : G.streak === 3 || G.streak === 6)) { await wait(250); if (live(tk)) await praise(); }
+  const own = useRec() && PHG.praise.some(id => hasK(PH[id]));
+  if (first && (own ? Math.random() < .55 : G.streak === 3 || G.streak === 6)) { await wait(250); if (live(tk)) await praise(); }
+  else if (!first && !G.revealed) { await wait(200); if (live(tk)) await sayGroup('retry'); }
+  else if (G.revealed && Math.random() < .6) { await wait(200); if (live(tk)) await sayGroup('hard'); }
   await wait(first ? 650 : 450);
   if (live(tk)) next();
 }
@@ -90,8 +102,8 @@ function firstTask(type) {
   const endOK = type === 'first' && (S.pos === 0 && knownN() === 0 || sumR('f:') >= 12);
   const endM = endOK && Math.random() < (knownN() === 0 ? .45 : .3), px = endM ? 'e:' : 'f:';
   const pos = w => endM ? w.t[w.t.length - 1] : w.t[0];
-  let pool = WORDS.filter(w => k.has(pos(w)) && pos(w) !== 'Y' && !(endM && ENDBAD.includes(tokens(w.word).pop())));
-  if (pool.length < 3) pool = WORDS.filter(w => k.has(w.t[0]));
+  let pool = RW(WORDS.filter(w => k.has(pos(w)) && pos(w) !== 'Y' && !(endM && ENDBAD.includes(tokens(w.word).pop()))));
+  if (pool.length < 3) pool = RWor(WORDS.filter(w => k.has(w.t[0])));
   const w = pick(pool, w => px + pos(w) + ':' + w.word, w => fboost(pos(w) === f, f) * (1 / Math.sqrt(pool.filter(x => pos(x) === pos(w)).length)));
   const ans = pos(w), key = px + ans;
   const others = shuffle([...k].filter(x => x !== ans && x !== 'Y'));
@@ -110,7 +122,7 @@ MAKE.first = () => {
     if (await playH(ans)) await wait(200); if (!live(tk)) return;
     await sayList(w.syl, hiArc('arcF')); if (!live(tk)) return; await say(w.word); if (live(tk)) done(ok);
   };
-  bind('.bal', (b, i) => { if (ch[i] === ans) { right(key); fin(G.tries === 0); } else { b.classList.add('bad'); if (wrong(b, key)) fin(false); else say(w.word); } });
+  bind('.bal', (b, i) => { if (ch[i] === ans) { right(key); fin(G.tries === 0); } else { b.classList.add('bad'); if (wrong(b, key)) fin(false); else oops(() => say(w.word)); } });
 };
 
 /* ---------- Kdo vykoukl: kamarádi vykukují s písmenky ---------- */
@@ -146,14 +158,14 @@ MAKE.mole = () => {
   ms.forEach(m => m.onclick = () => {
     if (!G || G.lock || !m.classList.contains('up')) return;
     if (m.dataset.l === ans) { right(key); fin(G.tries === 0, m); }
-    else { m.classList.add('bad'); m.classList.remove('up'); if (wrong(m.parentNode, key)) fin(false, null); else say(w.word); }
+    else { m.classList.add('bad'); m.classList.remove('up'); if (wrong(m.parentNode, key)) fin(false, null); else oops(() => say(w.word)); }
   });
 };
 
 /* ---------- Vytleskej ---------- */
 MAKE.clap = () => {
   const f = focusL();
-  const w = pick(WORDS, w => 'c:' + w.word, w => fboost(w.t.includes(f), f) * (words().includes(w) ? 1.5 : 1)), key = 'c:' + w.word; let n = 0;
+  const w = pick(RWor(WORDS), w => 'c:' + w.word, w => fboost(w.t.includes(f), f) * (words().includes(w) ? 1.5 : 1)), key = 'c:' + w.word; let n = 0;
   const tk = task('clap', 'Vytleskej: kolik slabik?', w.word);
   setStage(`${picHTML(w)}<div class="word" id="rev" style="visibility:hidden">${arcHTML(w.syl, 'arcC')}</div><div class="cnt" id="cnt"></div><div class="row" style="align-items:center"><button class="ibtn" id="again" aria-label="Znovu">${ICON.redo}</button><button class="clap" id="clap" aria-label="Tlesknout">👏</button><button class="btn go" id="ok" aria-label="Hotovo">${ICON.ok}</button></div>`);
   const draw = () => { $('cnt').innerHTML = Array.from({ length: n }, (_, i) => `<i${i === n - 1 ? ' class="pop"' : ''}>${i + 1}</i>`).join(''); };
@@ -171,9 +183,9 @@ MAKE.clap = () => {
 MAKE.find = () => {
   const cs = cons(), f = focusL(); let s, ch, key, letters = false;
   if (!cs.length) {                                  /* zatím jen samohlásky */
-    letters = true; s = pick(VOW, x => 'h:' + x); key = 'h:' + s; ch = shuffle(VOW).filter(x => x !== s).slice(0, 3).concat([s]);
+    letters = true; s = pick(RSor(VOW.map(v => 'h:' + v)).map(x => x.slice(2).toUpperCase()), x => 'h:' + x); key = 'h:' + s; ch = shuffle(VOW).filter(x => x !== s).slice(0, 3).concat([s]);
   } else {
-    s = pick(syls(), x => 's:' + x, x => fboost(tokens(x)[0] === f, f)); key = 's:' + s; const t = tokens(s);
+    s = pick(RSor(syls()), x => 's:' + x, x => fboost(tokens(x)[0] === f, f)); key = 's:' + s; const t = tokens(s);
     const set = new Set([s]); const a = VOW.filter(v => v !== t[1]); set.add(t[0] + pickOne(a));
     const o = cs.filter(c => c !== t[0]); if (o.length) set.add(pickOne(o) + t[1]);
     const all = syls(); let g = 0; while (set.size < 4 && set.size < all.length && g++ < 80) set.add(pickOne(all));
@@ -191,12 +203,12 @@ MAKE.find = () => {
     else await blend(s);
     if (live(tk)) done(ok);
   };
-  bind('.bub', (b, i) => { if (ch[i] === s) { right(key); fin(G.tries === 0); } else { b.classList.add('bad'); sfx('drip'); if (wrong(b, key)) fin(false); else G.replay(); } });
+  bind('.bub', (b, i) => { if (ch[i] === s) { right(key); fin(G.tries === 0); } else { b.classList.add('bad'); sfx('drip'); if (wrong(b, key)) fin(false); else oops(() => G.replay()); } });
 };
 
 /* ---------- Slož slabiku ---------- */
 MAKE.build = () => {
-  const f = focusL(); const s = pick(syls(), x => 'b:' + x, x => fboost(tokens(x)[0] === f, f)), key = 'b:' + s, [c, v] = tokens(s);
+  const f = focusL(); const s = pick(RSor(syls()), x => 'b:' + x, x => fboost(tokens(x)[0] === f, f)), key = 'b:' + s, [c, v] = tokens(s);
   const cr = shuffle([c, ...shuffle(cons().filter(x => x !== c)).slice(0, 2)]), vr = shuffle([v, ...shuffle(VOW.filter(x => x !== v)).slice(0, 2)]);
   const got = [false, false];
   const tk = task('build', 'Slož slabiku, kterou slyšíš', s);
@@ -204,14 +216,14 @@ MAKE.build = () => {
   const put = (k, x, b) => { if (b) { sfx('tap'); playH(x); } got[k] = true; const sl = $('s' + k); if (!sl) return; sl.innerHTML = ctok(x); sl.classList.add('full', 'pop'); if (b) b.classList.add('used'); };
   const fin = async ok => { G.lock = true; if (!got[0]) put(0, c); if (!got[1]) put(1, v); await wait(380); if (!live(tk)) return; setStage(''); await blend(s); if (live(tk)) done(ok); };
   const check = () => { if (got[0] && got[1]) { right(key); fin(G.tries === 0); } };
-  bind('.tc', (b, i) => { if (got[0]) return; if (cr[i] === c) { put(0, c, b); check(); } else if (wrong(b, key)) fin(false); else say(s); });
-  bind('.tv', (b, i) => { if (got[1]) return; if (vr[i] === v) { put(1, v, b); check(); } else if (wrong(b, key)) fin(false); else say(s); });
+  bind('.tc', (b, i) => { if (got[0]) return; if (cr[i] === c) { put(0, c, b); check(); } else if (wrong(b, key)) fin(false); else oops(() => say(s)); });
+  bind('.tv', (b, i) => { if (got[1]) return; if (vr[i] === v) { put(1, v, b); check(); } else if (wrong(b, key)) fin(false); else oops(() => say(s)); });
 };
 
 /* ---------- Slovní vláček: slož slovo ze slabik ---------- */
 MAKE.word = () => {
   const f = focusL(); const pool = words().filter(w => w.syl.length > 1);
-  const w = pick(pool, w => 'w:' + w.word, w => fboost(w.t.includes(f), f)), key = 'w:' + w.word;
+  const w = pick(RWor(pool), w => 'w:' + w.word, w => fboost(w.t.includes(f), f)), key = 'w:' + w.word;
   const others = [...new Set(pool.filter(x => x !== w).flatMap(x => x.syl))].filter(x => !w.syl.includes(x));
   const bank = shuffle([...w.syl, ...shuffle(others).slice(0, w.syl.length > 3 ? 1 : 2)]); let p = 0;
   const tk = task('word', 'Slož slovo ze slabik', w.word);
@@ -224,8 +236,8 @@ MAKE.word = () => {
     if (live(tk)) done(ok);
   };
   bind('.tile', async (b, i) => {
-    if (bank[i] === w.syl[p]) { b.classList.add('used'); const s = w.syl[p]; sfx('tap'); put(); if (p === w.syl.length) { right(key); G.lock = true; await say(s); if (live(tk)) fin(G.tries === 0); } else say(s); }
-    else if (wrong(b, key)) fin(false); else say(w.word);
+    if (bank[i] === w.syl[p]) { b.classList.add('used'); const s = w.syl[p]; sfx('tap'); put(); if (p === w.syl.length) { right(key); G.lock = true; await say(s); if (live(tk)) fin(G.tries === 0); } else oops(() => say(s)); }
+    else if (wrong(b, key)) fin(false); else oops(() => say(w.word));
   });
 };
 
@@ -236,7 +248,7 @@ function similar(pool, w, n) {
   return out.concat(rest).concat(same).filter((x, i, a) => a.indexOf(x) === i).slice(0, n);
 }
 MAKE.read = () => {
-  const f = focusL(); const pool = words(); const w = pick(pool, w => 'r:' + w.word, w => fboost(w.t.includes(f), f)), key = 'r:' + w.word;
+  const f = focusL(); const pool = words(); const w = pick(RWor(pool), w => 'r:' + w.word, w => fboost(w.t.includes(f), f)), key = 'r:' + w.word;
   const ch = shuffle([w, ...similar(pool, w, 2)]);
   const tk = task('read', 'Přečti. Co to je?', null);
   setStage(`<div class="word card">${arcHTML(w.syl, 'arcR')}</div><div class="row">${ch.map((x, i) => `<button class="tile p" data-i="${i}" aria-label="obrázek ${i + 1}">${x.pic}</button>`).join('')}</div><p class="hint" id="rh" hidden>Ťukni na slabiku a poslechni si ji.</p>`);
@@ -247,7 +259,7 @@ MAKE.read = () => {
 
 /* ---------- Najdi slovo: obrázek → napsané slovo ---------- */
 MAKE.pick = () => {
-  const f = focusL(); const pool = words(); const w = pick(pool, w => 'k:' + w.word, w => fboost(w.t.includes(f), f)), key = 'k:' + w.word;
+  const f = focusL(); const pool = words(); const w = pick(RWor(pool), w => 'k:' + w.word, w => fboost(w.t.includes(f), f)), key = 'k:' + w.word;
   const ch = shuffle([w, ...similar(pool, w, 2)]);
   const tk = task('pick', 'Které slovo to je?', w.word);
   setStage(`${picHTML(w)}<div class="row" style="flex-direction:column;align-items:center">${ch.map((x, i) => `<button class="tile w" data-i="${i}">${colorize(x.word)}</button>`).join('')}</div>`);
@@ -256,7 +268,7 @@ MAKE.pick = () => {
     if (b) { b.classList.add('ok'); b.innerHTML = arcHTML(w.syl, 'arcK'); }
     await sayList(w.syl, hiArc('arcK')); if (!live(tk)) return; await say(w.word); if (live(tk)) done(ok);
   };
-  bind('.tile', (b, i) => { if (ch[i] === w) { right(key); fin(G.tries === 0); } else { b.classList.add('dim'); if (wrong(b, key)) fin(false); else say(w.word); } });
+  bind('.tile', (b, i) => { if (ch[i] === w) { right(key); fin(G.tries === 0); } else { b.classList.add('dim'); if (wrong(b, key)) fin(false); else oops(() => say(w.word)); } });
 };
 
 /* ---------- Pexeso: velké a malé písmeno ---------- */
@@ -273,7 +285,7 @@ MAKE.pairs = () => {
     G.lock = true; const [a, c] = open.map(j => cards[j]);
     if (a.l === c.l) {
       open.forEach(j => { els[j].classList.remove('up'); els[j].classList.add('ok', 'pop'); }); open = []; got++; mark('p:' + a.l, !bad.has(a.l)); sfx('ping', got * 2); burstAt(b, 5);
-      if (!(await playH(a.l))) { const w = WORDS.find(w => w.t[0] === a.l); if (w && live(tk)) await say(w.word); }
+      if (!(await playH(a.l))) { const w = RW(WORDS).find(w => w.t[0] === a.l); if (w && live(tk)) await say(w.word); }
       if (!live(tk)) return; G.lock = false; if (got === L.length) done(miss <= 3);
     } else {
       miss++; owlDo('huh'); [a.l, c.l].forEach(l => { if (!bad.has(l)) { bad.add(l); mark('p:' + l, false); } });
@@ -286,7 +298,7 @@ MAKE.pairs = () => {
 MAKE.paint = forced => {
   const f = focusL(), ks = [...knownSet()];
   const L = typeof forced === 'string' ? forced : pick(ks, x => 'a:' + x, x => fboost(x === f, f));
-  const ex = shuffle(WORDS.filter(w => w.t[0] === L && w.word.length <= 7))[0] || shuffle(WORDS.filter(w => w.t[0] === L))[0];
+  const exw = RW(WORDS.filter(w => w.t[0] === L)), ex = shuffle(exw.filter(w => w.word.length <= 7))[0] || shuffle(exw)[0];
   const tk = task('paint', 'Vybarvi písmenko', null, { replay: async () => { if (!(await playH(L)) && ex) await say(ex.word); } });
   const glyph = shown(L);
   setStage(`<div class="paintwrap" id="pw"><canvas id="pc1"></canvas><canvas id="pc2"></canvas><div class="bar"><i id="pbar"></i></div><span class="hand" id="phand">👆</span></div>`);
@@ -344,7 +356,7 @@ MAKE.paint = forced => {
 /* ---------- Nové písmenko: představení a hned vybarvit ---------- */
 MAKE.intro = () => {
   const L = zoneLetter(S.pos); if (!L) return MAKE.paint();
-  const exs = shuffle(WORDS.filter(w => w.t[0] === L)).slice(0, 3);
+  const exs = shuffle(RW(WORDS.filter(w => w.t[0] === L))).slice(0, 3);
   const tk = task('intro', 'Nové písmenko!', null, { ph: 'letter', upper: true, replay: async () => { if (!(await playH(L)) && exs[0]) await say(exs[0].word); } });
   setStage(`<div class="lintro"><div class="lblock pop"><span class="${isV(L) ? 'v' : 'c'}">${L}</span><span class="${isV(L) ? 'v' : 'c'}">${low(L)}</span></div></div><div class="row">${exs.map((w, i) => `<button class="tile p" data-i="${i}">${w.pic}</button>`).join('')}</div><button class="btn go" id="introGo" aria-label="Dál">${ICON.play}</button>`);
   sfx('magic');
@@ -354,10 +366,10 @@ MAKE.intro = () => {
 
 /* ---------- Řekni to: dítě čte nahlas, kamarád to zopakuje ---------- */
 MAKE.speak = () => {
-  const nw = words(), f = focusL(), useW = nw.length >= 3 && Math.random() < .7;
+  const nw = RW(words()), f = focusL(), useW = nw.length >= 2 && (Math.random() < .7 || !RS(syls()).length);
   const w = useW ? pick(nw, w => 'm:' + w.word, w => fboost(w.t.includes(f), f) * (w.syl.length <= 2 ? 1.6 : 1)) : null;
-  const s = w ? w.word : pick(syls(), x => 'm:' + x, x => fboost(tokens(x)[0] === f, f)), key = 'm:' + s;
-  const tk = task('speak', 'Přečti to nahlas', null, { replay: () => say(s) });
+  const s = w ? w.word : pick(RSor(syls()), x => 'm:' + x, x => fboost(tokens(x)[0] === f, f)), key = 'm:' + s;
+  const tk = task('speak', 'Přečti to nahlas', null);   /* nic nepředříkávat: nejdřív čte dítě */
   $('sayBtn').hidden = true;
   const pet = S.pets.length ? S.pets[S.pets.length - 1 - rnd(Math.min(3, S.pets.length))] : null;
   setStage(`<div class="word card">${w ? arcHTML(w.syl, 'arcS') : `<span class="arc" id="arcS"><span>${colorize(s)}</span></span>`}</div><div class="speakrow">${pet ? petSVG(pet) : `<div style="width:110px;height:120px">${owlSVG()}</div>`}<button class="micbig" id="micB" aria-label="Mluv">${ICON.mic}</button></div><div class="lvl"><i id="lvl"></i></div>`);
@@ -369,7 +381,7 @@ MAKE.speak = () => {
   $('micB').onclick = async () => {
     if (!live(tk) || G.lock) return; const b = $('micB'); stopVoice();
     const ok = await capture(async take => {
-      b.classList.remove('on'); if (!live(tk)) return; const lv = $('lvl'); if (lv) lv.style.width = '0';
+      b.classList.remove('on'); closeMic(); if (!live(tk)) return; const lv = $('lvl'); if (lv) lv.style.width = '0';
       if (!take) { fails++; sfx('no'); if (fails >= 2) finish(false); return; }
       G.lock = true; if (pe) pe.classList.add('talk', 'jump'); await parrot(take, 1.5); if (pe) pe.classList.remove('talk'); if (!live(tk)) return;
       await wait(250); finish(true);
